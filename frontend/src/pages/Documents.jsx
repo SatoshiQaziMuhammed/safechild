@@ -229,8 +229,8 @@ const Documents = () => {
                 />
                 <p className="text-sm text-gray-500">
                   {language === 'de' 
-                    ? 'Test-Nummern: SC2025001, SC2025002, SC2025003' 
-                    : 'Test numbers: SC2025001, SC2025002, SC2025003'}
+                    ? 'Geben Sie Ihre registrierte Mandantennummer ein' 
+                    : 'Enter your registered client number'}
                 </p>
               </div>
 
