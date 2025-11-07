@@ -283,13 +283,21 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Consent Logging - Log Consent"
-    - "Consent Logging - Get Consent"
+    - "Video Meetings - Create Meeting"
+    - "Video Meetings - Get My Meetings"
+    - "Video Meetings - Get Meeting Details"
+    - "Video Meetings - Update Meeting Status"
+    - "Video Meetings - Delete Meeting"
+    - "Forensics - Start Analysis"
+    - "Forensics - Get Status"
+    - "Forensics - Download Report"
+    - "Forensics - Get My Cases"
+    - "Forensics - Delete Case"
   stuck_tasks:
     - "Consent Logging - Log Consent"
-  test_all: true
+  test_all: false
   test_priority: "high_first"
-  notes: "All backend APIs tested comprehensively. 23 out of 25 tests passed (92% success rate). Only consent logging endpoints have critical bugs that need fixing"
+  notes: "Need to test newly added video meeting endpoints and forensics endpoints. Consent logging bug still needs fixing."
 
   - task: "Video Meetings - Create Meeting"
     implemented: true
