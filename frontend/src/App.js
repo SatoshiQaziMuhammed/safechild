@@ -83,6 +83,10 @@ function App() {
               {/* Admin routes */}
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/clients" element={<AdminClients />} />
+              
+              {/* Consultation & Video Call */}
+              <Route path="/book-consultation" element={<BookConsultation />} />
+              <Route path="/video-call" element={<VideoCall />} />
             </Routes>
             <Toaster />
           </div>
