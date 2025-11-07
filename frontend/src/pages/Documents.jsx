@@ -86,34 +86,58 @@ const Documents = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!fileNumber) {
-      toast({
-        title: language === 'de' ? 'Fehler' : 'Error',
-        description: language === 'de' ? 'Bitte geben Sie die Dokumentennummer ein' : 'Please enter the document number',
-        variant: 'destructive'
-      });
+      toast.error(
+        language === 'de' ? 'Fehler' : 'Error',
+        { description: language === 'de' ? 'Bitte geben Sie die Dokumentennummer ein' : 'Please enter the document number' }
+      );
       return;
     }
 
-    if (!mockFileNumbers.includes(fileNumber)) {
-      toast({
-        title: t(language, 'invalidNumber'),
-        description: language === 'de' 
-          ? 'Die eingegebene Dokumentennummer wurde nicht gefunden.' 
-          : 'The entered document number was not found.',
-        variant: 'destructive'
+    try {
+      const response = await axios.get(`${API}/documents/${fileNumber}/download`, {
+        responseType: 'blob',
       });
-      return;
-    }
 
-    // Simulate download
-    toast({
-      title: t(language, 'downloadSuccess'),
-      description: language === 'de' ? 'Ihre Datei wird heruntergeladen' : 'Your file is being downloaded',
-    });
-    
-    setFileNumber('');
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Get filename from headers or use document number
+      const contentDisposition = response.headers['content-disposition'];
+      const filename = contentDisposition 
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `document_${fileNumber}.pdf`;
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success(t(language, 'downloadSuccess'), {
+        description: language === 'de' ? 'Ihre Datei wird heruntergeladen' : 'Your file is being downloaded'
+      });
+      
+      setFileNumber('');
+    } catch (error) {
+      console.error('Download error:', error);
+      
+      if (error.response?.status === 404) {
+        toast.error(t(language, 'invalidNumber'), {
+          description: language === 'de' 
+            ? 'Die eingegebene Dokumentennummer wurde nicht gefunden.' 
+            : 'The entered document number was not found.'
+        });
+      } else {
+        toast.error(
+          language === 'de' ? 'Download fehlgeschlagen' : 'Download failed',
+          { description: error.response?.data?.detail || error.message }
+        );
+      }
+    }
   };
 
   return (
