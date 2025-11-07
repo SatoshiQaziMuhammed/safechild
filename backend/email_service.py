@@ -227,7 +227,7 @@ info@safechild.mom
                 </div>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="https://custody-rights-app.preview.emergentagent.com/forensic-analysis" style="background: #6366f1; color: white; padding: 15px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                    <a href="{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/forensic-analysis" style="background: #6366f1; color: white; padding: 15px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
                         Bericht Herunterladen
                     </a>
                 </div>
