@@ -171,10 +171,20 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <img
+            src="https://images.pexels.com/photos/51953/mother-daughter-love-sunset-51953.jpeg"
+            alt="Hope and reunion"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
-            <FileText className="w-16 h-16 mx-auto mb-6" />
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full mb-6">
+              <FileText className="w-10 h-10" />
+            </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
               {language === 'de' 
                 ? 'Bereit, für Ihre Rechte zu kämpfen?' 
@@ -185,7 +195,7 @@ const Home = () => {
                 ? 'Kontaktieren Sie uns heute für eine kostenlose Erstberatung. Unser Expertenteam steht bereit, Ihnen zu helfen.'
                 : 'Contact us today for a free initial consultation. Our expert team is ready to help you.'}
             </p>
-            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8">
+            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 shadow-xl hover:shadow-2xl transition-all">
               {t(language, 'heroButton')}
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
