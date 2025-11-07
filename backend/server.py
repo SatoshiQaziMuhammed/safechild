@@ -15,7 +15,8 @@ from models import (
     Document, DocumentUpload,
     Consent, ConsentCreate,
     ChatMessage, ChatMessageCreate,
-    LandmarkCase
+    LandmarkCase,
+    ClientRegister, ClientLogin, Token
 )
 from utils import (
     generate_client_number,
@@ -23,6 +24,12 @@ from utils import (
     get_upload_directory,
     sanitize_filename,
     is_allowed_file_type
+)
+from auth import (
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    get_current_client
 )
 
 ROOT_DIR = Path(__file__).parent
