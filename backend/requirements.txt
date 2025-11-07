@@ -72,3 +72,4 @@ emergentintegrations==0.1.0
 pytsk3==20250801
 reportlab==4.0.7
 reportlab==4.4.4
+resend==2.19.0
