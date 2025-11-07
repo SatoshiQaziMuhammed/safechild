@@ -112,6 +112,61 @@ const About = () => {
           </div>
         </div>
 
+        {/* Landmark Cases Section */}
+        {landmarkCases.length > 0 && (
+          <div className="mt-20">
+            <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">
+              {language === 'de' ? 'Erfolgreiche Präzedenzfälle' : 'Landmark Success Cases'}
+            </h2>
+            <p className="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+              {language === 'de'
+                ? 'Internationale Fälle, die Geschichte geschrieben haben und die Rechte von Eltern weltweit gestärkt haben.'
+                : 'International cases that made history and strengthened parental rights worldwide.'}
+            </p>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {landmarkCases.map((case_) => (
+                <Card key={case_.caseNumber} className="border-2 hover:border-blue-500 hover:shadow-xl transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-2 text-blue-600 mb-4">
+                      <Award className="w-5 h-5" />
+                      <span className="font-semibold">{case_.outcome[language]}</span>
+                    </div>
+                    
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">
+                      {case_.title[language]}
+                    </h3>
+                    
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center space-x-2 text-sm text-gray-600">
+                        <Calendar className="w-4 h-4" />
+                        <span>{case_.year}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-sm text-gray-600">
+                        <MapPin className="w-4 h-4" />
+                        <span>{case_.countries[language]}</span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                      {case_.description[language]}
+                    </p>
+                    
+                    <div className="bg-blue-50 rounded-lg p-4 mt-4">
+                      <p className="text-xs font-semibold text-blue-900 mb-2">
+                        {language === 'de' ? 'Rechtlicher Grundsatz:' : 'Legal Principle:'}
+                      </p>
+                      <p className="text-xs text-blue-800 leading-relaxed">
+                        {case_.legalPrinciple[language]}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Values Section */}
         <div className="mt-20 bg-gradient-to-br from-blue-50 to-white rounded-2xl p-12">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
