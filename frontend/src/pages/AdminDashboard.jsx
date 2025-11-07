@@ -190,9 +190,39 @@ const AdminDashboard = () => {
           <Card className="border-2 hover:border-indigo-500 transition-all">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
+                {language === 'de' ? 'Forensische Fälle' : 'Forensic Cases'}
+              </CardTitle>
+              <Fingerprint className="w-8 h-8 text-indigo-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{stats.totalForensicCases || 0}</div>
+              <p className="text-xs text-gray-600 mt-1">
+                {stats.processingCases || 0} {language === 'de' ? 'in Bearbeitung' : 'processing'} • {stats.completedCases || 0} {language === 'de' ? 'abgeschlossen' : 'completed'}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 hover:border-cyan-500 transition-all">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                {language === 'de' ? 'Video-Konsultationen' : 'Video Consultations'}
+              </CardTitle>
+              <Video className="w-8 h-8 text-cyan-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{stats.totalMeetings || 0}</div>
+              <p className="text-xs text-gray-600 mt-1">
+                {stats.scheduledMeetings || 0} {language === 'de' ? 'geplant' : 'scheduled'} • {stats.completedMeetings || 0} {language === 'de' ? 'abgeschlossen' : 'completed'}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 hover:border-green-500 transition-all">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
                 {language === 'de' ? 'System Status' : 'System Status'}
               </CardTitle>
-              <Activity className="w-8 h-8 text-indigo-600" />
+              <Activity className="w-8 h-8 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
