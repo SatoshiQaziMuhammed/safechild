@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { toast } from 'sonner';
 import { 
   Users, FileText, Shield, MessageSquare, 
-  LogOut, TrendingUp, Activity, Eye
+  LogOut, TrendingUp, Activity, Eye, Video, Fingerprint
 } from 'lucide-react';
 import axios from 'axios';
 
