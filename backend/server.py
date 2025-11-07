@@ -246,7 +246,7 @@ async def get_landmark_cases():
 @api_router.get("/cases/landmark/{case_number}")
 async def get_landmark_case(case_number: str):
     """Get specific landmark case"""
-    case = await db.landmark_cases.find_one({"caseNumber": case_number})
+    case = await db.landmark_cases.find_one({"caseNumber": case_number}, {"_id": 0})
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
     return case
