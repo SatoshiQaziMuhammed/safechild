@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { t } from '../translations';
-import { mockClientNumbers, mockFileNumbers } from '../mock';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Upload, Download, FileText, CheckCircle, XCircle } from 'lucide-react';
-import { useToast } from '../hooks/use-toast';
+import { Upload, Download, FileText } from 'lucide-react';
+import { toast } from 'sonner';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const Documents = () => {
   const { language } = useLanguage();
