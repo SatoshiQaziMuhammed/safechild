@@ -11,6 +11,19 @@ const API = `${BACKEND_URL}/api`;
 
 const About = () => {
   const { language } = useLanguage();
+  const [landmarkCases, setLandmarkCases] = useState([]);
+
+  useEffect(() => {
+    const fetchLandmarkCases = async () => {
+      try {
+        const response = await axios.get(`${API}/cases/landmark`);
+        setLandmarkCases(response.data.cases || []);
+      } catch (error) {
+        console.error('Error fetching landmark cases:', error);
+      }
+    };
+    fetchLandmarkCases();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 py-20">
