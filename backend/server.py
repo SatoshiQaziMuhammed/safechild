@@ -160,7 +160,7 @@ async def upload_document(
 @api_router.get("/documents/{document_number}/download")
 async def download_document(document_number: str):
     """Download document by document number"""
-    document = await db.documents.find_one({"documentNumber": document_number})
+    document = await db.documents.find_one({"documentNumber": document_number}, {"_id": 0})
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
