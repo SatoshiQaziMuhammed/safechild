@@ -232,7 +232,7 @@ async def send_message(message_data: ChatMessageCreate):
 @api_router.get("/chat/{session_id}")
 async def get_chat_history(session_id: str):
     """Get chat history for a session"""
-    messages = await db.chat_messages.find({"sessionId": session_id}).sort("timestamp", 1).to_list(1000)
+    messages = await db.chat_messages.find({"sessionId": session_id}, {"_id": 0}).sort("timestamp", 1).to_list(1000)
     return {"messages": messages}
 
 # ==================== LANDMARK CASES ====================
