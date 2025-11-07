@@ -34,6 +34,7 @@ from auth import (
     get_current_client,
     get_current_admin
 )
+from email_service import EmailService
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
