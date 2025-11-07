@@ -13,6 +13,7 @@ import json
 
 from .parsers import WhatsAppParser, TelegramParser, SMSParser, SignalParser
 from .analyzers import TimelineAnalyzer, ContactNetworkAnalyzer, MediaAnalyzer
+from .reporters import PDFReportGenerator
 
 class SafeChildForensicsEngine:
     """
