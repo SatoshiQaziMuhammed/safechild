@@ -1262,6 +1262,17 @@ async def admin_get_statistics(
         total_consents = await db.consents.count_documents({})
         total_messages = await db.chat_messages.count_documents({})
         
+        # Forensics statistics
+        total_forensic_cases = await db.forensic_analyses.count_documents({})
+        processing_cases = await db.forensic_analyses.count_documents({"status": "processing"})
+        completed_cases = await db.forensic_analyses.count_documents({"status": "completed"})
+        failed_cases = await db.forensic_analyses.count_documents({"status": "failed"})
+        
+        # Meeting statistics
+        total_meetings = await db.meetings.count_documents({})
+        scheduled_meetings = await db.meetings.count_documents({"status": "scheduled"})
+        completed_meetings = await db.meetings.count_documents({"status": "completed"})
+        
         # Recent clients (last 7 days)
         seven_days_ago = datetime.utcnow() - timedelta(days=7)
         recent_clients = await db.clients.count_documents({
@@ -1275,8 +1286,204 @@ async def admin_get_statistics(
             "totalDocuments": total_documents,
             "totalConsents": total_consents,
             "totalMessages": total_messages,
+            "totalForensicCases": total_forensic_cases,
+            "processingCases": processing_cases,
+            "completedCases": completed_cases,
+            "failedCases": failed_cases,
+            "totalMeetings": total_meetings,
+            "scheduledMeetings": scheduled_meetings,
+            "completedMeetings": completed_meetings,
             "recentClients": recent_clients
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/forensics")
+async def admin_get_all_forensic_cases(
+    current_admin: dict = Depends(get_current_admin),
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100
+):
+    """Get all forensic cases (admin only)"""
+    try:
+        query = {}
+        if status:
+            query["status"] = status
+        
+        cases = await db.forensic_analyses.find(
+            query,
+            {"_id": 0}
+        ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+        
+        total = await db.forensic_analyses.count_documents(query)
+        
+        return {
+            "cases": cases,
+            "total": total,
+            "skip": skip,
+            "limit": limit
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/forensics/{case_id}")
+async def admin_get_forensic_case_details(
+    case_id: str,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Get detailed forensic case info (admin only)"""
+    try:
+        case = await db.forensic_analyses.find_one(
+            {"case_id": case_id},
+            {"_id": 0}
+        )
+        
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+        
+        return case
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/admin/forensics/{case_id}")
+async def admin_delete_forensic_case(
+    case_id: str,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Delete forensic case (admin only) - force delete regardless of status"""
+    try:
+        case = await db.forensic_analyses.find_one({"case_id": case_id})
+        
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+        
+        # Delete files
+        if case.get("uploaded_file"):
+            try:
+                Path(case["uploaded_file"]).unlink(missing_ok=True)
+            except:
+                pass
+        
+        if case.get("report_txt"):
+            try:
+                Path(case["report_txt"]).unlink(missing_ok=True)
+            except:
+                pass
+        
+        if case.get("report_pdf"):
+            try:
+                Path(case["report_pdf"]).unlink(missing_ok=True)
+            except:
+                pass
+        
+        # Delete from database
+        await db.forensic_analyses.delete_one({"case_id": case_id})
+        
+        return {"success": True, "message": "Forensic case deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/meetings")
+async def admin_get_all_meetings(
+    current_admin: dict = Depends(get_current_admin),
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100
+):
+    """Get all meetings (admin only)"""
+    try:
+        query = {}
+        if status:
+            query["status"] = status
+        
+        meetings = await db.meetings.find(
+            query,
+            {"_id": 0}
+        ).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
+        
+        total = await db.meetings.count_documents(query)
+        
+        return {
+            "meetings": meetings,
+            "total": total,
+            "skip": skip,
+            "limit": limit
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/meetings/{meeting_id}")
+async def admin_get_meeting_details(
+    meeting_id: str,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Get detailed meeting info (admin only)"""
+    try:
+        meeting = await db.meetings.find_one(
+            {"meetingId": meeting_id},
+            {"_id": 0}
+        )
+        
+        if not meeting:
+            raise HTTPException(status_code=404, detail="Meeting not found")
+        
+        return meeting
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.patch("/admin/meetings/{meeting_id}")
+async def admin_update_meeting(
+    meeting_id: str,
+    update_data: dict,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Update meeting (admin only)"""
+    try:
+        meeting = await db.meetings.find_one({"meetingId": meeting_id})
+        
+        if not meeting:
+            raise HTTPException(status_code=404, detail="Meeting not found")
+        
+        # Remove fields that shouldn't be updated
+        update_data.pop("meetingId", None)
+        update_data.pop("createdAt", None)
+        update_data["updatedAt"] = datetime.utcnow()
+        
+        await db.meetings.update_one(
+            {"meetingId": meeting_id},
+            {"$set": update_data}
+        )
+        
+        return {"success": True, "message": "Meeting updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/admin/meetings/{meeting_id}")
+async def admin_delete_meeting(
+    meeting_id: str,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Delete meeting (admin only) - force delete regardless of status"""
+    try:
+        meeting = await db.meetings.find_one({"meetingId": meeting_id})
+        
+        if not meeting:
+            raise HTTPException(status_code=404, detail="Meeting not found")
+        
+        await db.meetings.delete_one({"meetingId": meeting_id})
+        
+        return {"success": True, "message": "Meeting deleted successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
