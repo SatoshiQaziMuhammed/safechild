@@ -29,7 +29,8 @@ from auth import (
     get_password_hash,
     verify_password,
     create_access_token,
-    get_current_client
+    get_current_client,
+    get_current_admin
 )
 
 ROOT_DIR = Path(__file__).parent
