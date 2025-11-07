@@ -124,18 +124,21 @@ const Documents = () => {
     } catch (error) {
       console.error('Download error:', error);
       
+      let errorMessage = language === 'de' ? 'Download fehlgeschlagen' : 'Download failed';
+      let errorDescription = error.message;
+      
       if (error.response?.status === 404) {
-        toast.error(t(language, 'invalidNumber'), {
-          description: language === 'de' 
-            ? 'Die eingegebene Dokumentennummer wurde nicht gefunden.' 
-            : 'The entered document number was not found.'
-        });
-      } else {
-        toast.error(
-          language === 'de' ? 'Download fehlgeschlagen' : 'Download failed',
-          { description: error.response?.data?.detail || error.message }
-        );
+        errorMessage = t(language, 'invalidNumber');
+        errorDescription = language === 'de' 
+          ? 'Die eingegebene Dokumentennummer wurde nicht gefunden.' 
+          : 'The entered document number was not found.';
+      } else if (error.response?.data?.detail) {
+        errorDescription = error.response.data.detail;
       }
+      
+      toast.error(errorMessage, {
+        description: errorDescription
+      });
     }
   };
 
