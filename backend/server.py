@@ -443,64 +443,133 @@ async def get_landmark_case(case_number: str):
 
 # ==================== PAYMENT (STRIPE) ====================
 
-from payment import create_payment_intent, create_checkout_session, get_payment_status
+from payment import create_consultation_checkout, get_checkout_status, handle_webhook
+from pydantic import BaseModel
 
-@api_router.post("/payment/create-intent")
-async def create_payment(
-    amount: int,
-    current_client: dict = Depends(get_current_client)
-):
-    """Create payment intent"""
-    try:
-        result = create_payment_intent(
-            amount=amount,
-            metadata={
-                "client_number": current_client["clientNumber"],
-                "email": current_client["email"]
-            }
-        )
-        if result["success"]:
-            return result
-        else:
-            raise HTTPException(status_code=400, detail=result["error"])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+class CheckoutRequest(BaseModel):
+    origin_url: str
 
 @api_router.post("/payment/create-checkout")
 async def create_checkout(
+    request_data: CheckoutRequest,
     current_client: dict = Depends(get_current_client)
 ):
-    """Create Stripe Checkout session for consultation"""
+    """
+    Create Stripe Checkout session for legal consultation
+    Amount is defined on backend for security
+    """
     try:
-        # URLs should come from frontend
-        success_url = f"{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/payment/success"
-        cancel_url = f"{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/payment/cancel"
-        
-        result = create_checkout_session(
+        result = await create_consultation_checkout(
             client_number=current_client["clientNumber"],
-            success_url=success_url,
-            cancel_url=cancel_url
+            client_email=current_client["email"],
+            origin_url=request_data.origin_url,
+            package_id="consultation"
         )
         
         if result["success"]:
-            return result
+            # Create payment transaction record
+            payment_transaction = {
+                "transaction_id": result["session_id"],
+                "session_id": result["session_id"],
+                "client_number": current_client["clientNumber"],
+                "client_email": current_client["email"],
+                "amount": result["amount"],
+                "currency": result["currency"],
+                "payment_status": "pending",
+                "status": "initiated",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+                "metadata": {
+                    "package_id": "consultation",
+                    "service": "legal_consultation"
+                }
+            }
+            await db.payment_transactions.insert_one(payment_transaction)
+            
+            return {
+                "url": result["url"],
+                "session_id": result["session_id"]
+            }
         else:
-            raise HTTPException(status_code=400, detail=result["error"])
+            raise HTTPException(status_code=400, detail=result.get("error", "Payment creation failed"))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.get("/payment/status/{payment_intent_id}")
-async def check_payment_status(
-    payment_intent_id: str,
+@api_router.get("/payment/checkout/status/{session_id}")
+async def check_checkout_status(
+    session_id: str,
     current_client: dict = Depends(get_current_client)
 ):
-    """Check payment status"""
+    """
+    Poll checkout session status
+    Handles status updates and prevents duplicate processing
+    """
     try:
-        result = get_payment_status(payment_intent_id)
+        # Get status from Stripe
+        result = await get_checkout_status(session_id)
+        
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result.get("error", "Status check failed"))
+        
+        # Update payment transaction in database
+        transaction = await db.payment_transactions.find_one({"session_id": session_id})
+        
+        if transaction:
+            # Only update if status has changed to prevent duplicate processing
+            if transaction.get("payment_status") != result["payment_status"]:
+                update_data = {
+                    "payment_status": result["payment_status"],
+                    "status": result["status"],
+                    "updated_at": datetime.utcnow()
+                }
+                
+                # If payment is successful, mark as completed
+                if result["payment_status"] == "paid" and transaction.get("payment_status") != "paid":
+                    update_data["completed_at"] = datetime.utcnow()
+                    # Here you can add logic to grant access to consultation, etc.
+                
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": update_data}
+                )
+        
+        return {
+            "status": result["status"],
+            "payment_status": result["payment_status"],
+            "amount": result["amount_total"],
+            "currency": result["currency"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """
+    Handle Stripe webhook events
+    """
+    try:
+        payload = await request.body()
+        signature = request.headers.get("Stripe-Signature", "")
+        
+        result = await handle_webhook(payload, signature)
+        
         if result["success"]:
-            return result
+            # Update payment transaction based on webhook event
+            session_id = result.get("session_id")
+            if session_id:
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {
+                        "payment_status": result["payment_status"],
+                        "webhook_received": True,
+                        "webhook_event_type": result["event_type"],
+                        "updated_at": datetime.utcnow()
+                    }}
+                )
+            
+            return {"status": "success"}
         else:
-            raise HTTPException(status_code=400, detail=result["error"])
+            raise HTTPException(status_code=400, detail=result.get("error", "Webhook processing failed"))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
