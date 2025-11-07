@@ -1,0 +1,174 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { useLanguage } from '../contexts/LanguageContext';
+import { t } from '../translations';
+import { mockStats } from '../mock';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Scale, Globe, Users, ArrowRight, Shield, FileText } from 'lucide-react';
+
+const Home = () => {
+  const { language } = useLanguage();
+
+  const services = [
+    {
+      icon: Scale,
+      title: t(language, 'service1Title'),
+      description: t(language, 'service1Description'),
+    },
+    {
+      icon: Globe,
+      title: t(language, 'service2Title'),
+      description: t(language, 'service2Description'),
+    },
+    {
+      icon: Users,
+      title: t(language, 'service3Title'),
+      description: t(language, 'service3Description'),
+    },
+  ];
+
+  return (
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-blue-50 via-white to-blue-50 py-20 lg:py-32">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center px-4 py-2 bg-blue-100 rounded-full mb-6">
+              <Shield className="w-4 h-4 text-blue-600 mr-2" />
+              <span className="text-sm font-medium text-blue-900">
+                {language === 'de' ? 'Internationale Experten' : 'International Experts'}
+              </span>
+            </div>
+            
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+              {t(language, 'heroTitle')}
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-blue-600 font-semibold mb-6">
+              {t(language, 'heroSubtitle')}
+            </p>
+            
+            <p className="text-lg text-gray-600 mb-10 max-w-2xl mx-auto">
+              {t(language, 'heroDescription')}
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8">
+                {t(language, 'heroButton')}
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+              <Button size="lg" variant="outline" className="text-lg px-8">
+                {t(language, 'heroButtonSecondary')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 bg-white border-y">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-blue-600 mb-2">
+                {mockStats.cases}
+              </div>
+              <div className="text-sm md:text-base text-gray-600">
+                {t(language, 'statsCases')}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-blue-600 mb-2">
+                {mockStats.lawyers}
+              </div>
+              <div className="text-sm md:text-base text-gray-600">
+                {t(language, 'statsLawyers')}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-blue-600 mb-2">
+                {mockStats.countries}
+              </div>
+              <div className="text-sm md:text-base text-gray-600">
+                {t(language, 'statsCountries')}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-blue-600 mb-2">
+                {mockStats.experience}
+              </div>
+              <div className="text-sm md:text-base text-gray-600">
+                {t(language, 'statsExperience')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {t(language, 'servicesTitle')}
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              {t(language, 'servicesSubtitle')}
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {services.map((service, index) => {
+              const Icon = service.icon;
+              return (
+                <Card key={index} className="border-2 hover:border-blue-500 hover:shadow-lg transition-all duration-300">
+                  <CardHeader>
+                    <div className="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                      <Icon className="w-7 h-7 text-blue-600" />
+                    </div>
+                    <CardTitle className="text-xl">{service.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-base mb-4">
+                      {service.description}
+                    </CardDescription>
+                    <Link to="/services" className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center">
+                      {t(language, 'learnMore')}
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </Link>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto text-center">
+            <FileText className="w-16 h-16 mx-auto mb-6" />
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              {language === 'de' 
+                ? 'Bereit, für Ihre Rechte zu kämpfen?' 
+                : 'Ready to Fight for Your Rights?'}
+            </h2>
+            <p className="text-lg mb-8 opacity-90">
+              {language === 'de'
+                ? 'Kontaktieren Sie uns heute für eine kostenlose Erstberatung. Unser Expertenteam steht bereit, Ihnen zu helfen.'
+                : 'Contact us today for a free initial consultation. Our expert team is ready to help you.'}
+            </p>
+            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8">
+              {t(language, 'heroButton')}
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default Home;
