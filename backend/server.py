@@ -85,7 +85,7 @@ async def get_client(client_number: str):
 @api_router.get("/clients/{client_number}/validate")
 async def validate_client_number(client_number: str):
     """Validate if client number exists"""
-    client = await db.clients.find_one({"clientNumber": client_number})
+    client = await db.clients.find_one({"clientNumber": client_number}, {"_id": 0})
     return {
         "valid": client is not None,
         "client": client if client else None
