@@ -61,4 +61,17 @@ async def get_current_client(credentials: HTTPAuthorizationCredentials = Depends
             detail="Could not validate credentials"
         )
     
-    return {"clientNumber": client_number, "email": payload.get("email")}
+    return {
+        "clientNumber": client_number, 
+        "email": payload.get("email"),
+        "role": payload.get("role", "client")
+    }
+
+async def get_current_admin(current_client: dict = Depends(get_current_client)) -> dict:
+    """Verify current user is admin"""
+    if current_client.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return current_client
