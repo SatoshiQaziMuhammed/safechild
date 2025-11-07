@@ -90,6 +90,7 @@ function App() {
               <Route path="/book-consultation" element={<BookConsultation />} />
               <Route path="/video-call" element={<VideoCall />} />
               <Route path="/forensic-software" element={<ForensicSoftware />} />
+              <Route path="/forensic-analysis" element={<ForensicAnalysis />} />
             </Routes>
             <Toaster />
           </div>
