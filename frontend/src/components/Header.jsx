@@ -16,6 +16,7 @@ const Header = () => {
     { path: '/about', label: t(language, 'about') },
     { path: '/documents', label: t(language, 'documents') },
     { path: '/faq', label: t(language, 'faq') },
+    { path: '/portal', label: language === 'de' ? 'Portal' : 'Portal' },
   ];
 
   const isActive = (path) => location.pathname === path;
