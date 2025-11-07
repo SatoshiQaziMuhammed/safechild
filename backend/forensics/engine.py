@@ -37,9 +37,13 @@ class SafeChildForensicsEngine:
         self.contact_analyzer = ContactNetworkAnalyzer()
         self.media_analyzer = MediaAnalyzer()
         
+        # Initialize reporters
+        self.pdf_reporter = PDFReportGenerator()
+        
         print(f"✅ SafeChild Forensics Engine V2 initialized (TSK {self.tsk_version})")
         print(f"   📱 Parsers: WhatsApp, Telegram, SMS, Signal")
         print(f"   📊 Analyzers: Timeline, Contacts, Media")
+        print(f"   📄 Reporters: PDF, TXT")
         
     async def analyze_android_backup(
         self,
