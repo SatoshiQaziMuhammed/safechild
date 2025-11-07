@@ -147,18 +147,18 @@ const Home = () => {
             {services.map((service, index) => {
               const Icon = service.icon;
               return (
-                <Card key={index} className="border-2 hover:border-blue-500 hover:shadow-lg transition-all duration-300">
+                <Card key={index} className="border-2 hover:border-blue-500 hover:shadow-xl transition-all duration-300 group overflow-hidden">
                   <CardHeader>
-                    <div className="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                      <Icon className="w-7 h-7 text-blue-600" />
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                      <Icon className="w-7 h-7 text-white" />
                     </div>
-                    <CardTitle className="text-xl">{service.title}</CardTitle>
+                    <CardTitle className="text-xl group-hover:text-blue-600 transition-colors">{service.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <CardDescription className="text-base mb-4">
                       {service.description}
                     </CardDescription>
-                    <Link to="/services" className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center">
+                    <Link to="/services" className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center group-hover:translate-x-1 transition-transform">
                       {t(language, 'learnMore')}
                       <ArrowRight className="ml-2 w-4 h-4" />
                     </Link>
