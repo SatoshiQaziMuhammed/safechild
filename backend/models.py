@@ -124,3 +124,29 @@ class Token(BaseModel):
     email: str
     firstName: str
     lastName: str
+
+# Meeting/Video Call Models
+class MeetingCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    scheduledTime: Optional[datetime] = None
+    duration: int = 60  # in minutes
+    meetingType: str = "consultation"  # "consultation", "follow_up", "urgent"
+
+class Meeting(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    meetingId: str
+    clientNumber: str
+    clientEmail: str
+    title: str
+    description: Optional[str] = None
+    roomName: str
+    meetingUrl: str
+    scheduledTime: Optional[datetime] = None
+    duration: int = 60
+    meetingType: str = "consultation"
+    status: str = "scheduled"  # "scheduled", "in_progress", "completed", "cancelled"
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+    updatedAt: datetime = Field(default_factory=datetime.utcnow)
+    startedAt: Optional[datetime] = None
+    endedAt: Optional[datetime] = None
