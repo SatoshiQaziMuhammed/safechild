@@ -77,7 +77,7 @@ async def create_client(client_data: ClientCreate):
 @api_router.get("/clients/{client_number}")
 async def get_client(client_number: str):
     """Get client details by client number"""
-    client = await db.clients.find_one({"clientNumber": client_number})
+    client = await db.clients.find_one({"clientNumber": client_number}, {"_id": 0})
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     return client
