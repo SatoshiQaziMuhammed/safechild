@@ -2,6 +2,7 @@ import React from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster } from "./components/ui/sonner";
 
 // Layout
@@ -15,27 +16,70 @@ import Services from "./pages/Services";
 import About from "./pages/About";
 import Documents from "./pages/Documents";
 import FAQ from "./pages/FAQ";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Portal from "./pages/Portal";
 
 function App() {
   return (
     <LanguageProvider>
-      <BrowserRouter>
-        <div className="App flex flex-col min-h-screen">
-          <Header />
-          <main className="flex-1">
+      <AuthProvider>
+        <BrowserRouter>
+          <div className="App flex flex-col min-h-screen">
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/documents" element={<Documents />} />
-              <Route path="/faq" element={<FAQ />} />
+              {/* Public routes with layout */}
+              <Route path="/" element={
+                <>
+                  <Header />
+                  <main className="flex-1"><Home /></main>
+                  <Footer />
+                  <LiveChat />
+                </>
+              } />
+              <Route path="/services" element={
+                <>
+                  <Header />
+                  <main className="flex-1"><Services /></main>
+                  <Footer />
+                  <LiveChat />
+                </>
+              } />
+              <Route path="/about" element={
+                <>
+                  <Header />
+                  <main className="flex-1"><About /></main>
+                  <Footer />
+                  <LiveChat />
+                </>
+              } />
+              <Route path="/documents" element={
+                <>
+                  <Header />
+                  <main className="flex-1"><Documents /></main>
+                  <Footer />
+                  <LiveChat />
+                </>
+              } />
+              <Route path="/faq" element={
+                <>
+                  <Header />
+                  <main className="flex-1"><FAQ /></main>
+                  <Footer />
+                  <LiveChat />
+                </>
+              } />
+              
+              {/* Auth routes without layout */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* Portal route without public layout */}
+              <Route path="/portal" element={<Portal />} />
             </Routes>
-          </main>
-          <Footer />
-          <LiveChat />
-          <Toaster />
-        </div>
-      </BrowserRouter>
+            <Toaster />
+          </div>
+        </BrowserRouter>
+      </AuthProvider>
     </LanguageProvider>
   );
 }
