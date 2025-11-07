@@ -441,6 +441,192 @@ async def get_landmark_case(case_number: str):
         raise HTTPException(status_code=404, detail="Case not found")
     return case
 
+# ==================== ADMIN PANEL ====================
+
+@api_router.get("/admin/clients")
+async def admin_get_all_clients(
+    current_admin: dict = Depends(get_current_admin),
+    skip: int = 0,
+    limit: int = 100
+):
+    """Get all clients (admin only)"""
+    try:
+        clients = await db.clients.find(
+            {},
+            {"_id": 0, "hashedPassword": 0}
+        ).skip(skip).limit(limit).to_list(limit)
+        
+        total = await db.clients.count_documents({})
+        
+        return {
+            "clients": clients,
+            "total": total,
+            "skip": skip,
+            "limit": limit
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/clients/{client_number}")
+async def admin_get_client_details(
+    client_number: str,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Get detailed client info including documents (admin only)"""
+    try:
+        client = await db.clients.find_one(
+            {"clientNumber": client_number},
+            {"_id": 0, "hashedPassword": 0}
+        )
+        
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Get client's documents
+        documents = await db.documents.find(
+            {"clientNumber": client_number},
+            {"_id": 0}
+        ).to_list(100)
+        
+        # Get client's chat messages
+        chat_messages = await db.chat_messages.find(
+            {"clientNumber": client_number},
+            {"_id": 0}
+        ).sort("timestamp", -1).to_list(50)
+        
+        return {
+            "client": client,
+            "documents": documents,
+            "chatMessages": chat_messages
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/admin/clients/{client_number}")
+async def admin_update_client(
+    client_number: str,
+    update_data: dict,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Update client information (admin only)"""
+    try:
+        # Remove fields that shouldn't be updated
+        update_data.pop("clientNumber", None)
+        update_data.pop("hashedPassword", None)
+        update_data.pop("createdAt", None)
+        update_data["updatedAt"] = datetime.utcnow()
+        
+        result = await db.clients.update_one(
+            {"clientNumber": client_number},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        return {"success": True, "message": "Client updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/admin/clients/{client_number}")
+async def admin_delete_client(
+    client_number: str,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Delete client (admin only) - soft delete by setting status to 'deleted'"""
+    try:
+        result = await db.clients.update_one(
+            {"clientNumber": client_number},
+            {"$set": {"status": "deleted", "updatedAt": datetime.utcnow()}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        return {"success": True, "message": "Client deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/documents")
+async def admin_get_all_documents(
+    current_admin: dict = Depends(get_current_admin),
+    skip: int = 0,
+    limit: int = 100
+):
+    """Get all documents (admin only)"""
+    try:
+        documents = await db.documents.find(
+            {},
+            {"_id": 0}
+        ).skip(skip).limit(limit).to_list(limit)
+        
+        total = await db.documents.count_documents({})
+        
+        return {
+            "documents": documents,
+            "total": total
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/consents")
+async def admin_get_all_consents(
+    current_admin: dict = Depends(get_current_admin),
+    skip: int = 0,
+    limit: int = 100
+):
+    """Get all consent logs (admin only)"""
+    try:
+        consents = await db.consents.find(
+            {},
+            {"_id": 0}
+        ).skip(skip).limit(limit).to_list(limit)
+        
+        total = await db.consents.count_documents({})
+        
+        return {
+            "consents": consents,
+            "total": total
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/stats")
+async def admin_get_statistics(
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Get dashboard statistics (admin only)"""
+    try:
+        total_clients = await db.clients.count_documents({"role": "client"})
+        active_clients = await db.clients.count_documents({"status": "active", "role": "client"})
+        total_documents = await db.documents.count_documents({})
+        total_consents = await db.consents.count_documents({})
+        total_messages = await db.chat_messages.count_documents({})
+        
+        # Recent clients (last 7 days)
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        recent_clients = await db.clients.count_documents({
+            "createdAt": {"$gte": seven_days_ago},
+            "role": "client"
+        })
+        
+        return {
+            "totalClients": total_clients,
+            "activeClients": active_clients,
+            "totalDocuments": total_documents,
+            "totalConsents": total_consents,
+            "totalMessages": total_messages,
+            "recentClients": recent_clients
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ==================== HEALTH CHECK ====================
 
 @api_router.get("/")
