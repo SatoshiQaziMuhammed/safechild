@@ -641,6 +641,22 @@ async def run_forensic_analysis_task(
                 }}
             )
             print(f"[Background Task] ✅ Analysis completed: {case_id}")
+            
+            # Send forensic analysis complete email
+            try:
+                # Get analysis record for file name
+                analysis = await db.forensic_analyses.find_one({"case_id": case_id})
+                
+                EmailService.send_forensic_analysis_complete(
+                    recipient_email=client_info.get("email", ""),
+                    recipient_name=f"{client_info.get('firstName', '')} {client_info.get('lastName', '')}".strip() or "Kunde",
+                    case_id=case_id,
+                    file_name=analysis.get("file_name", ""),
+                    statistics=result.get("statistics")
+                )
+                logger.info(f"Forensic analysis complete email sent for {case_id}")
+            except Exception as e:
+                logger.error(f"Failed to send forensic analysis email: {str(e)}")
         else:
             # Update with error
             await db.forensic_analyses.update_one(
