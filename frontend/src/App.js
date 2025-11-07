@@ -24,6 +24,7 @@ import AdminClients from "./pages/AdminClients";
 import BookConsultation from "./pages/BookConsultation";
 import VideoCall from "./pages/VideoCall";
 import ForensicSoftware from "./pages/ForensicSoftware";
+import ForensicAnalysis from "./pages/ForensicAnalysis";
 
 function App() {
   return (
