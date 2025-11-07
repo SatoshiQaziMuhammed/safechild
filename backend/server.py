@@ -86,7 +86,7 @@ async def register_client(client_data: ClientRegister):
         
         # Create access token
         access_token = create_access_token(
-            data={"sub": client_number, "email": client_data.email}
+            data={"sub": client_number, "email": client_data.email, "role": "client"}
         )
         
         return Token(
