@@ -958,6 +958,32 @@ async def create_meeting(
         
         await db.meetings.insert_one(meeting_record)
         
+        # Send meeting confirmation email
+        try:
+            # Format scheduled time for email
+            scheduled_date = ""
+            scheduled_time = ""
+            if meeting_data.scheduledTime:
+                scheduled_date = meeting_data.scheduledTime.strftime('%d.%m.%Y')
+                scheduled_time = meeting_data.scheduledTime.strftime('%H:%M') + " Uhr"
+            else:
+                scheduled_date = datetime.utcnow().strftime('%d.%m.%Y')
+                scheduled_time = "Nach Vereinbarung"
+            
+            EmailService.send_meeting_confirmation(
+                recipient_email=current_client["email"],
+                recipient_name=f"{current_client.get('firstName', '')} {current_client.get('lastName', '')}".strip() or "Kunde",
+                meeting_title=meeting_data.title,
+                meeting_date=scheduled_date,
+                meeting_time=scheduled_time,
+                meeting_url=meeting_url,
+                meeting_id=meeting_id
+            )
+            logger.info(f"Meeting confirmation email sent to {current_client['email']}")
+        except Exception as e:
+            logger.error(f"Failed to send meeting confirmation email: {str(e)}")
+            # Don't fail meeting creation if email fails
+        
         return {
             "success": True,
             "meetingId": meeting_id,
