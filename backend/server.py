@@ -441,6 +441,69 @@ async def get_landmark_case(case_number: str):
         raise HTTPException(status_code=404, detail="Case not found")
     return case
 
+# ==================== PAYMENT (STRIPE) ====================
+
+from payment import create_payment_intent, create_checkout_session, get_payment_status
+
+@api_router.post("/payment/create-intent")
+async def create_payment(
+    amount: int,
+    current_client: dict = Depends(get_current_client)
+):
+    """Create payment intent"""
+    try:
+        result = create_payment_intent(
+            amount=amount,
+            metadata={
+                "client_number": current_client["clientNumber"],
+                "email": current_client["email"]
+            }
+        )
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/payment/create-checkout")
+async def create_checkout(
+    current_client: dict = Depends(get_current_client)
+):
+    """Create Stripe Checkout session for consultation"""
+    try:
+        # URLs should come from frontend
+        success_url = f"{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/payment/success"
+        cancel_url = f"{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/payment/cancel"
+        
+        result = create_checkout_session(
+            client_number=current_client["clientNumber"],
+            success_url=success_url,
+            cancel_url=cancel_url
+        )
+        
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/payment/status/{payment_intent_id}")
+async def check_payment_status(
+    payment_intent_id: str,
+    current_client: dict = Depends(get_current_client)
+):
+    """Check payment status"""
+    try:
+        result = get_payment_status(payment_intent_id)
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ==================== ADMIN PANEL ====================
 
 @api_router.get("/admin/clients")
