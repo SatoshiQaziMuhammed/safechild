@@ -87,6 +87,18 @@ async def register_client(client_data: ClientRegister):
         
         await db.clients.insert_one(client.dict())
         
+        # Send welcome email
+        try:
+            EmailService.send_welcome_email(
+                recipient_email=client_data.email,
+                recipient_name=f"{client_data.firstName} {client_data.lastName}",
+                client_number=client_number
+            )
+            logger.info(f"Welcome email sent to {client_data.email}")
+        except Exception as e:
+            logger.error(f"Failed to send welcome email: {str(e)}")
+            # Don't fail registration if email fails
+        
         # Create access token
         access_token = create_access_token(
             data={"sub": client_number, "email": client_data.email, "role": "client"}
