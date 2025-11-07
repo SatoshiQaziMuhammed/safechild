@@ -21,6 +21,8 @@ import Register from "./pages/Register";
 import Portal from "./pages/Portal";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminClients from "./pages/AdminClients";
+import AdminForensics from "./pages/AdminForensics";
+import AdminMeetings from "./pages/AdminMeetings";
 import BookConsultation from "./pages/BookConsultation";
 import VideoCall from "./pages/VideoCall";
 import ForensicSoftware from "./pages/ForensicSoftware";
