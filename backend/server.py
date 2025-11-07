@@ -240,7 +240,7 @@ async def get_chat_history(session_id: str):
 @api_router.get("/cases/landmark")
 async def get_landmark_cases():
     """Get all landmark cases"""
-    cases = await db.landmark_cases.find().to_list(100)
+    cases = await db.landmark_cases.find({}, {"_id": 0}).to_list(100)
     return {"cases": cases}
 
 @api_router.get("/cases/landmark/{case_number}")
