@@ -18,14 +18,24 @@ const LiveChat = () => {
   const [hasConsent, setHasConsent] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
+  const [sessionId, setSessionId] = useState(null);
 
   useEffect(() => {
     // Check if user has already given consent
     const savedConsent = localStorage.getItem('safechild-consent');
     if (savedConsent) {
+      const consentData = JSON.parse(savedConsent);
       setHasConsent(true);
+      setSessionId(consentData.sessionId || `session_${Date.now()}`);
     }
   }, []);
+
+  useEffect(() => {
+    // Load chat history when session is available
+    if (sessionId && isOpen && messages.length === 0) {
+      loadChatHistory();
+    }
+  }, [sessionId, isOpen]);
 
   const handleChatOpen = () => {
     if (!hasConsent) {
