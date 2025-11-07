@@ -457,7 +457,7 @@ Unsere Services:
 - Forensische Analyse: Professionelle Geräte-Analyse für Sorgerechtsfälle
 - Dokumentenverwaltung: Sichere Speicherung aller wichtigen Unterlagen
 
-Portal: https://custody-rights-app.preview.emergentagent.com/portal
+Portal: {os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/portal
 
 Brauchen Sie Hilfe? Unser Team steht Ihnen jederzeit zur Verfügung.
 
