@@ -321,7 +321,7 @@ def test_consent_logging():
     """Test consent logging endpoints"""
     print_section("5. CONSENT LOGGING API")
     
-    # Test POST log consent
+    # Test POST log consent (BUG FIX VERIFICATION - ipAddress should NOT be in request body)
     try:
         consent_data = {
             "sessionId": test_data['session_id'],
@@ -332,20 +332,20 @@ def test_consent_logging():
                 "files": True,
                 "forensic": True
             },
-            "userAgent": "Mozilla/5.0 (Test Browser)",
-            "ipAddress": "127.0.0.1"
+            "userAgent": "Mozilla/5.0 (Test Browser)"
+            # NOTE: ipAddress is NOT included - server extracts it from request
         }
         response = requests.post(f"{API_BASE}/consent", json=consent_data, timeout=10)
         if response.status_code == 200:
             data = response.json()
             if data.get('success') and data.get('consentId'):
-                log_test("POST /api/consent", True, f"Consent logged: {data['consentId']}")
+                log_test("POST /api/consent (BUG FIX VERIFIED)", True, f"Consent logged: {data['consentId']}")
             else:
-                log_test("POST /api/consent", False, "Missing success or consentId in response")
+                log_test("POST /api/consent (BUG FIX VERIFIED)", False, "Missing success or consentId in response")
         else:
-            log_test("POST /api/consent", False, f"Status code: {response.status_code}, Response: {response.text}")
+            log_test("POST /api/consent (BUG FIX VERIFIED)", False, f"Status code: {response.status_code}, Response: {response.text}")
     except Exception as e:
-        log_test("POST /api/consent", False, str(e))
+        log_test("POST /api/consent (BUG FIX VERIFIED)", False, str(e))
     
     # Test POST consent with missing fields (error scenario)
     try:
