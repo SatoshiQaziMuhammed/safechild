@@ -214,7 +214,7 @@
 - [x] Supervisor process management
 - [x] Environment variables configured
 - [x] CORS properly configured
-- [x] Production URL: https://childlaw-portal.preview.emergentagent.com
+- [x] Production URL: https://custody-rights-app.preview.emergentagent.com
 
 ---
 
