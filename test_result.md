@@ -291,8 +291,130 @@ test_plan:
   test_priority: "high_first"
   notes: "All backend APIs tested comprehensively. 23 out of 25 tests passed (92% success rate). Only consent logging endpoints have critical bugs that need fixing"
 
+  - task: "Video Meetings - Create Meeting"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added POST /api/meetings/create endpoint. Creates video consultation meetings with unique room names for Jitsi, stores meeting details in MongoDB. Generates meeting URL and room name for video calls."
+  
+  - task: "Video Meetings - Get My Meetings"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/meetings/my-meetings endpoint. Returns list of meetings for authenticated client with optional status filter. Sorted by creation date descending."
+  
+  - task: "Video Meetings - Get Meeting Details"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/meetings/{meeting_id} endpoint. Returns detailed meeting information including room name, URL, schedule, and status."
+  
+  - task: "Video Meetings - Update Meeting Status"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added PATCH /api/meetings/{meeting_id}/status endpoint. Updates meeting status (scheduled, in_progress, completed, cancelled). Automatically tracks startedAt and endedAt timestamps."
+  
+  - task: "Video Meetings - Delete Meeting"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added DELETE /api/meetings/{meeting_id} endpoint. Deletes/cancels meetings. Prevents deletion of in-progress meetings."
+
+  - task: "Forensics - Start Analysis"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/forensics/analyze endpoint exists. Accepts file uploads (.db, .tar, .gz, .ab, .zip), creates forensic analysis records, runs analysis in background using pytsk3."
+
+  - task: "Forensics - Get Status"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/forensics/status/{case_id} endpoint exists. Returns analysis status (processing, completed, failed) with statistics."
+
+  - task: "Forensics - Download Report"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/forensics/report/{case_id} endpoint exists. Downloads forensic reports in TXT or PDF format."
+
+  - task: "Forensics - Get My Cases"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/forensics/my-cases endpoint exists. Returns list of forensic cases for authenticated client."
+
+  - task: "Forensics - Delete Case"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "DELETE /api/forensics/case/{case_id} endpoint exists. Deletes forensic cases and associated files. Prevents deletion of processing cases."
+
 agent_communication:
   - agent: "testing"
     message: "Completed comprehensive backend API testing. Created backend_test.py with 25 test cases covering all endpoints including success and error scenarios. Test results: 23 passed, 2 failed. Critical bug found in consent logging endpoint - duplicate ipAddress parameter issue. All other endpoints working correctly including landmark cases, client management, document upload/download, and chat messages. Detailed test results and root cause analysis documented in status_history"
   - agent: "testing"
     message: "CRITICAL BUG DETAILS: The consent logging POST endpoint has a code conflict where ipAddress is being passed twice - once from the request body (ConsentCreate model requires it) and once extracted from request.client.host. This causes a 500 error. Main agent needs to decide on the design: either always extract IP from request (remove from ConsentCreate model) or use IP from request body (remove extraction logic from endpoint)"
+  - agent: "main"
+    message: "Added comprehensive video meeting management endpoints (create, list, details, update status, delete). Also documented forensics endpoints that were previously implemented. Need to test all new meeting endpoints and forensics endpoints. The consent bug should also be fixed before testing."
