@@ -6,6 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { MessageCircle, X, Send } from 'lucide-react';
 import ConsentModal from './ConsentModal';
 import { Input } from './ui/input';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const LiveChat = () => {
   const { language } = useLanguage();
