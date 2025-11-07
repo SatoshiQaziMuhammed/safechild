@@ -215,27 +215,33 @@ backend:
 
   - task: "Consent Logging - Log Consent"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "testing"
         comment: "CRITICAL BUG: POST /api/consent returns 500 error with message 'models.Consent() got multiple values for keyword argument ipAddress'. Root cause: server.py line 186-195 extracts IP from request.client.host and passes it as ipAddress parameter, but ConsentCreate model (models.py line 63) already includes ipAddress as a required field in the request body. This causes duplicate ipAddress arguments when creating Consent object. FIX REQUIRED: Either remove ipAddress from ConsentCreate model and always extract from request, OR remove lines 189-190 and 194 from server.py to use the IP from request body"
+      - working: true
+        agent: "testing"
+        comment: "BUG FIX VERIFIED ✅: POST /api/consent now working correctly. Main agent fixed the issue by removing ipAddress from ConsentCreate model (models.py line 60-66). Server now extracts IP from request.client.host and passes it to Consent constructor. Successfully created consent with ID 608569e9-1edf-4ac2-a7b4-e9c855496494. Validation working correctly (422 for missing fields)"
 
   - task: "Consent Logging - Get Consent"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "testing"
         comment: "GET /api/consent/{session_id} returns 404 because consent was never created due to the POST /api/consent bug. Once POST is fixed, this endpoint should work correctly. 404 error handling for invalid sessions works correctly"
+      - working: true
+        agent: "testing"
+        comment: "GET /api/consent/{session_id} working correctly. Successfully retrieved consent data for session test_session_123. 404 error handling works correctly for invalid session IDs"
 
   - task: "Chat Messages - Send Message"
     implemented: true
