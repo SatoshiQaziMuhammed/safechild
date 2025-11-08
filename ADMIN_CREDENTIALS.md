@@ -16,7 +16,7 @@ https://safechild.mom/login
 ### **2. Admin Credentials:**
 
 ```
-📧 Email:    admin@safechild.law
+📧 Email:    admin@safechild.mom
 🔑 Password: admin123
 ```
 
