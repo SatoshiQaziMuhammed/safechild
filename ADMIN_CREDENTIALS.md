@@ -34,7 +34,7 @@ https://safechild.mom/admin/dashboard
 2. Login formunu gör
 
 ### **Adım 2: Credentials Gir**
-1. Email: `admin@safechild.law`
+1. Email: `admin@safechild.mom`
 2. Password: `admin123`
 3. "Anmelden" (Login) butonuna tıkla
 
