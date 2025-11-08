@@ -134,7 +134,7 @@ export const mockFAQs = [
 export const mockStats = {
   cases: '250+',
   lawyers: '8',
-  countries: '35+',
+  countries: '125',
   experience: '15+'
 };
 
