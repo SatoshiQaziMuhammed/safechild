@@ -100,7 +100,7 @@ https://safechild.mom/admin/dashboard
 **1. Login Göster (30 saniye)**
 ```
 → https://safechild.mom/login
-→ Email: admin@safechild.law
+→ Email: admin@safechild.mom
 → Password: admin123
 → Login tıkla
 ```
