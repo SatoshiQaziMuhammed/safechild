@@ -440,6 +440,94 @@ async def send_message(message_data: ChatMessageCreate):
         message = ChatMessage(**message_data.dict())
         await db.chat_messages.insert_one(message.dict())
         
+        # Send email notification to admin when client sends a message
+        if message_data.sender == 'client':
+            try:
+                # Get session info for context
+                session_messages = await db.chat_messages.find(
+                    {"sessionId": message_data.sessionId}
+                ).sort("timestamp", 1).to_list(50)
+                
+                # Build message history for email
+                message_history = ""
+                for msg in session_messages[-5:]:  # Last 5 messages
+                    sender_label = "Kunde" if msg.get("sender") == "client" else "Bot"
+                    message_history += f"{sender_label}: {msg.get('message', '')}\n"
+                
+                # Send email to admin
+                EmailService.send_email(
+                    to=["info@safechild.mom"],  # Admin email
+                    subject=f"🔔 Neue Chat-Nachricht - Session {message_data.sessionId[:8]}",
+                    html=f"""
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                    </head>
+                    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                            <h1 style="color: white; margin: 0; font-size: 28px;">💬 Neue Chat-Nachricht</h1>
+                        </div>
+                        
+                        <div style="background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px;">
+                            <h2 style="color: #1e40af; margin-top: 0;">Chat-Benachrichtigung</h2>
+                            
+                            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+                                <p style="margin: 5px 0;"><strong>Session ID:</strong> {message_data.sessionId}</p>
+                                <p style="margin: 5px 0;"><strong>Neue Nachricht:</strong></p>
+                                <p style="margin: 10px 0; padding: 15px; background: #e0f2fe; border-radius: 6px;">{message_data.message}</p>
+                            </div>
+                            
+                            <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                <p style="margin: 0 0 10px 0;"><strong>Letzte Nachrichten:</strong></p>
+                                <pre style="background: #f1f5f9; padding: 15px; border-radius: 6px; font-size: 12px; overflow-x: auto;">{message_history}</pre>
+                            </div>
+                            
+                            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                                <p style="margin: 0; font-size: 14px;"><strong>⚠️ Aktion erforderlich:</strong></p>
+                                <p style="margin: 10px 0 0 0; font-size: 14px;">Ein Kunde wartet auf Antwort. Bitte prüfen Sie den Admin-Bereich oder antworten Sie direkt per Email.</p>
+                            </div>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/admin/dashboard" style="background: #2563eb; color: white; padding: 15px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                                    Zum Admin-Bereich
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">
+                            <p>SafeChild Rechtsanwaltskanzlei</p>
+                            <p style="margin-top: 15px;">
+                                <a href="mailto:info@safechild.mom" style="color: #2563eb; text-decoration: none;">info@safechild.mom</a>
+                            </p>
+                        </div>
+                    </body>
+                    </html>
+                    """,
+                    text=f"""
+SafeChild Law - Neue Chat-Nachricht
+
+Session ID: {message_data.sessionId}
+
+Neue Nachricht:
+{message_data.message}
+
+Letzte Nachrichten:
+{message_history}
+
+⚠️ Aktion erforderlich: Ein Kunde wartet auf Antwort.
+Bitte prüfen Sie den Admin-Bereich: {os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/admin/dashboard
+
+---
+SafeChild Rechtsanwaltskanzlei
+info@safechild.mom
+                    """
+                )
+                logger.info(f"Chat notification email sent to admin for session {message_data.sessionId}")
+            except Exception as e:
+                logger.error(f"Failed to send chat notification email: {str(e)}")
+                # Don't fail the message if email fails
+        
         return {
             "success": True,
             "messageId": message.id,
