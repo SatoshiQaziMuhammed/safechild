@@ -23,7 +23,7 @@ async def create_admin():
     
     try:
         # Admin credentials
-        admin_email = "admin@safechild.law"
+        admin_email = "admin@safechild.mom"
         admin_password = "admin123"  # Change this in production!
         
         # Check if admin exists
