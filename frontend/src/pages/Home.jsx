@@ -66,13 +66,17 @@ const Home = () => {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8 shadow-lg">
-                  {t(language, 'heroButton')}
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-                <Button size="lg" variant="outline" className="text-lg px-8 border-2">
-                  {t(language, 'heroButtonSecondary')}
-                </Button>
+                <Link to="/book-consultation">
+                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8 shadow-lg w-full sm:w-auto">
+                    {t(language, 'heroButton')}
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+                </Link>
+                <a href="mailto:info@safechild.mom">
+                  <Button size="lg" variant="outline" className="text-lg px-8 border-2 w-full sm:w-auto">
+                    {t(language, 'heroButtonSecondary')}
+                  </Button>
+                </a>
               </div>
             </div>
 
