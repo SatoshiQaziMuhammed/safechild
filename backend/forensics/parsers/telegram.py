@@ -112,6 +112,7 @@ class TelegramParser:
                     break
                     
             except sqlite3.Error as e:
+                print(f"[TelegramParser ERROR] Failed to execute query: {e}")
                 continue
         
         return messages
@@ -155,7 +156,8 @@ class TelegramParser:
                 if contacts:
                     break
                     
-            except sqlite3.Error:
+            except sqlite3.Error as e:
+                print(f"[TelegramParser ERROR] Failed to execute contact query: {e}")
                 continue
         
         return contacts
@@ -184,8 +186,8 @@ class TelegramParser:
                     "name": row[1],
                     "data": row[2]
                 })
-        except:
-            pass
+        except sqlite3.Error as e:
+            print(f"[TelegramParser ERROR] Failed to execute chat query: {e}")
         
         return chats
     
@@ -213,7 +215,7 @@ class TelegramParser:
                     "type": row[1],
                     "data": row[2]
                 })
-        except:
-            pass
+        except sqlite3.Error as e:
+            print(f"[TelegramParser ERROR] Failed to execute media query: {e}")
         
         return media

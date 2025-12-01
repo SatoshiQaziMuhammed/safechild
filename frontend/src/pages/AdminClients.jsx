@@ -6,10 +6,11 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { ArrowLeft, Search, Edit, Trash2, Eye, Mail, Phone, MapPin } from 'lucide-react';
+import { ArrowLeft, Search, Edit, Trash2, Eye, Mail, Phone, MapPin, Upload, Plus } from 'lucide-react';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -27,6 +28,17 @@ const AdminClients = () => {
   const [editDialog, setEditDialog] = useState(false);
   const [editData, setEditData] = useState({});
   const [loading, setLoading] = useState(true);
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState(null);
+  const [newClientDialog, setNewClientDialog] = useState(false);
+  const [newClientData, setNewClientData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    country: '',
+    caseType: ''
+  });
 
   useEffect(() => {
     fetchClients();
@@ -97,17 +109,40 @@ const AdminClients = () => {
     }
   };
 
-  const handleDelete = async (clientNumber) => {
-    if (!window.confirm('Are you sure you want to delete this client?')) return;
+  const handleDelete = (client) => {
+    setClientToDelete(client);
+    setDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!clientToDelete) return;
     
     try {
-      await axios.delete(`${API}/admin/clients/${clientNumber}`, {
+      await axios.delete(`${API}/admin/clients/${clientToDelete.clientNumber}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Client deleted successfully');
       fetchClients();
     } catch (error) {
       toast.error('Failed to delete client');
+    } finally {
+      setDeleteDialog(false);
+      setClientToDelete(null);
+    }
+  };
+
+  const handleCreateClient = async () => {
+    try {
+      await axios.post(`${API}/admin/clients`, newClientData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Client created successfully');
+      setNewClientDialog(false);
+      fetchClients();
+      // Reset form
+      setNewClientData({ firstName: '', lastName: '', email: '', phone: '', country: '', caseType: '' });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create client');
     }
   };
 
@@ -130,14 +165,20 @@ const AdminClients = () => {
       <div className="container mx-auto px-4 py-8">
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-              <Input
-                placeholder={language === 'de' ? 'Suchen...' : 'Search...'}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex space-x-4">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <Input
+                  placeholder={language === 'de' ? 'Suchen...' : 'Search...'}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button onClick={() => setNewClientDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                New Client
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -184,7 +225,16 @@ const AdminClients = () => {
                       <Button size="sm" variant="outline" onClick={() => handleEdit(client)}>
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDelete(client.clientNumber)}>
+                      {/* New: Plan Data Collection Session Button */}
+                      <Button 
+                        size="sm" 
+                        className="bg-blue-600 hover:bg-blue-700"
+                        onClick={() => navigate(`/admin/meetings?clientNumber=${client.clientNumber}`)}
+                      >
+                        <span className="hidden md:inline">{language === 'de' ? 'Daten sammeln' : 'Collect Data'}</span>
+                        <Upload className="w-4 h-4 md:ml-2" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleDelete(client)}>
                         <Trash2 className="w-4 h-4 text-red-600" />
                       </Button>
                     </div>
@@ -252,6 +302,45 @@ const AdminClients = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialog(false)}>Cancel</Button>
             <Button onClick={handleUpdate}>Update</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will mark the client as 'deleted' but will not permanently remove their data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* New Client Dialog */}
+      <Dialog open={newClientDialog} onOpenChange={setNewClientDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Client</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Input placeholder="First Name" value={newClientData.firstName} onChange={(e) => setNewClientData({...newClientData, firstName: e.target.value})} />
+              <Input placeholder="Last Name" value={newClientData.lastName} onChange={(e) => setNewClientData({...newClientData, lastName: e.target.value})} />
+            </div>
+            <Input placeholder="Email" type="email" value={newClientData.email} onChange={(e) => setNewClientData({...newClientData, email: e.target.value})} />
+            <Input placeholder="Phone" value={newClientData.phone} onChange={(e) => setNewClientData({...newClientData, phone: e.target.value})} />
+            <Input placeholder="Country" value={newClientData.country} onChange={(e) => setNewClientData({...newClientData, country: e.target.value})} />
+            <Input placeholder="Case Type" value={newClientData.caseType} onChange={(e) => setNewClientData({...newClientData, caseType: e.target.value})} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewClientDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreateClient}>Create Client</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

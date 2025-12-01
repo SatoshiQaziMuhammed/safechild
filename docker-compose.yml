@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  gateway:
+    image: nginx:1.25.3-alpine
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-gateway.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    networks:
+      - safechild-net
+    depends_on:
+      - frontend
+      - backend
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    # Ports removed, only accessible via gateway
+    networks:
+      - safechild-net
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    # Ports removed, only accessible via gateway
+    env_file:
+      - .env
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/safechild_db
+    networks:
+      - safechild-net
+    depends_on:
+      - mongo
+
+  backend-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/safechild_test_db
+    networks:
+      - safechild-net
+    depends_on:
+      mongo:
+        condition: service_healthy
+    command: >
+      sh -c "
+        export PYTHONPATH=/app &&
+        /opt/venv/bin/pytest
+      "
+
+  whatsapp-service:
+    build:
+      context: ./whatsapp-service
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    # Ports removed for security, only accessible via gateway
+    volumes:
+      - /tmp/forensics_uploads:/tmp/forensics_uploads
+    networks:
+      - safechild-net
+    depends_on:
+      - backend
+
+  telegram-service:
+    build:
+      context: ./telegram-service
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    # Ports removed for security, only accessible via gateway
+    volumes:
+      - /tmp/forensics_uploads:/tmp/forensics_uploads
+    networks:
+      - safechild-net
+    depends_on:
+      - backend
+
+  mongo:
+    image: mongo:latest
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    # Ports removed for security, only backend can access
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - safechild-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  safechild-net:
+    driver: bridge
+
+volumes:
+  mongo-data:
+
+

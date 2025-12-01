@@ -10,6 +10,7 @@ from pathlib import Path
 from passlib.context import CryptContext
 import uuid
 
+# Load environment variables
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -17,22 +18,34 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 async def create_admin():
     """Create admin user"""
-    mongo_url = os.environ['MONGO_URL']
-    client = AsyncIOMotorClient(mongo_url)
-    db = client[os.environ.get('DB_NAME', 'safechild')]
-    
+    print("--- Starting create_admin script ---")
     try:
+        mongo_url = os.environ.get('MONGO_URL')
+        if not mongo_url:
+            print("❌ MONGO_URL environment variable not found.")
+            return
+            
+        print(f"🔗 Connecting to MongoDB at: {mongo_url}")
+        client = AsyncIOMotorClient(mongo_url)
+        db = client[os.environ.get('DB_NAME', 'safechild')]
+        
+        # Test connection
+        await client.admin.command('ping')
+        print("✅ MongoDB connection successful.")
+
         # Admin credentials
         admin_email = "admin@safechild.mom"
-        admin_password = "admin123"  # Change this in production!
+        admin_password = "Str0ngP@ssw0rd_f0r_S@f3Child_!2025"  # Change this in production!
         
         # Check if admin exists
+        print(f"🔍 Checking for existing admin: {admin_email}")
         existing_admin = await db.clients.find_one({"email": admin_email})
         if existing_admin:
             print(f"⚠️  Admin already exists: {admin_email}")
             return
         
         # Create admin user
+        print("👤 Creating new admin user...")
         admin_user = {
             "id": str(uuid.uuid4()),
             "clientNumber": "SC2025ADMIN",
@@ -58,9 +71,12 @@ async def create_admin():
         print("\n⚠️  IMPORTANT: Change the password after first login!")
         
     except Exception as e:
-        print(f"❌ Error creating admin: {e}")
+        print(f"❌ An unexpected error occurred: {e}")
     finally:
-        client.close()
+        if 'client' in locals() and client:
+            client.close()
+            print("🚪 MongoDB connection closed.")
+        print("--- Script finished ---")
 
 if __name__ == "__main__":
     asyncio.run(create_admin())

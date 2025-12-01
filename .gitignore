@@ -45,3 +45,4 @@ dist/
 # Environment files
 *.env
 *.env.*
+wallet.txt

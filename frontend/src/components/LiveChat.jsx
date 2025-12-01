@@ -4,7 +4,6 @@ import { t } from '../translations';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { MessageCircle, X, Send } from 'lucide-react';
-import ConsentModal from './ConsentModal';
 import { Input } from './ui/input';
 import axios from 'axios';
 
@@ -14,89 +13,71 @@ const API = `${BACKEND_URL}/api`;
 const LiveChat = () => {
   const { language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
-  const [showConsent, setShowConsent] = useState(false);
-  const [hasConsent, setHasConsent] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [sessionId, setSessionId] = useState(null);
 
   useEffect(() => {
-    // Check if user has already given consent
-    const savedConsent = localStorage.getItem('safechild-consent');
-    if (savedConsent) {
-      const consentData = JSON.parse(savedConsent);
-      setHasConsent(true);
-      setSessionId(consentData.sessionId || `session_${Date.now()}`);
+    // Attempt to load a session ID from storage to maintain chat history across page loads
+    const savedSessionId = localStorage.getItem('safechild-chat-session');
+    if (savedSessionId) {
+      setSessionId(savedSessionId);
     }
   }, []);
 
   useEffect(() => {
-    // Load chat history when session is available
+    // Load chat history when the chat window is opened and a session ID is available
     if (sessionId && isOpen && messages.length === 0) {
       loadChatHistory();
     }
   }, [sessionId, isOpen]);
 
   const handleChatOpen = () => {
-    if (!hasConsent) {
-      setShowConsent(true);
-    } else {
-      setIsOpen(true);
-      // Add welcome message if no messages yet
-      if (messages.length === 0) {
-        setMessages([{
-          id: 1,
-          sender: 'bot',
-          text: language === 'de'
-            ? 'Willkommen! Wie können wir Ihnen helfen?'
-            : 'Welcome! How can we help you?',
-          timestamp: new Date(),
-        }]);
-      }
+    setIsOpen(true);
+    if (!sessionId) {
+      // Create a new session if one doesn't exist
+      const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      setSessionId(newSessionId);
+      localStorage.setItem('safechild-chat-session', newSessionId);
+      
+      // Add a welcome message for new sessions
+      setMessages([{
+        id: 1,
+        sender: 'bot',
+        text: language === 'de'
+          ? 'Willkommen! Wie können wir Ihnen helfen?'
+          : 'Welcome! How can we help you?',
+        timestamp: new Date(),
+      }]);
     }
   };
 
   const loadChatHistory = async () => {
-    if (!sessionId) return;
-    
     try {
       const response = await axios.get(`${API}/chat/${sessionId}`);
       if (response.data.messages && response.data.messages.length > 0) {
         setMessages(response.data.messages);
       } else {
-        // Add welcome message if no history
-        const welcomeMessage = {
-          id: Date.now().toString(),
+        // If no history on backend, start with a welcome message
+        setMessages([{
+          id: 1,
           sender: 'bot',
-          text: language === 'de'
-            ? 'Willkommen! Wie können wir Ihnen helfen?'
-            : 'Welcome! How can we help you?',
-          timestamp: new Date().toISOString(),
-        };
-        setMessages([welcomeMessage]);
-        // Save welcome message to backend
-        await axios.post(`${API}/chat/message`, {
-          sessionId,
-          sender: 'bot',
-          message: welcomeMessage.text,
-        });
+          text: language === 'de' ? 'Willkommen! Wie können wir Ihnen helfen?' : 'Welcome! How can we help you?',
+          timestamp: new Date(),
+        }]);
       }
     } catch (error) {
       console.error('Error loading chat history:', error);
+       // Fallback to welcome message on error
+       setMessages([{
+        id: 1,
+        sender: 'bot',
+        text: language === 'de' ? 'Willkommen! Wie können wir Ihnen helfen?' : 'Welcome! How can we help you?',
+        timestamp: new Date(),
+      }]);
     }
   };
-
-  const handleConsentAccept = () => {
-    const savedConsent = localStorage.getItem('safechild-consent');
-    const consentData = JSON.parse(savedConsent);
-    const newSessionId = consentData.sessionId || `session_${Date.now()}`;
-    
-    setHasConsent(true);
-    setSessionId(newSessionId);
-    setShowConsent(false);
-    setIsOpen(true);
-  };
-
+  
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !sessionId) return;
 
@@ -214,13 +195,6 @@ const LiveChat = () => {
           </CardContent>
         </Card>
       )}
-
-      {/* Consent Modal */}
-      <ConsentModal
-        open={showConsent}
-        onClose={() => setShowConsent(false)}
-        onAccept={handleConsentAccept}
-      />
     </>
   );
 };

@@ -41,52 +41,54 @@ const Header = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                  isActive(item.path)
-                    ? 'text-blue-600 border-b-2 border-blue-600 pb-1'
-                    : 'text-gray-700'
-                }`}
+          <div className="flex items-center space-x-4">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                    isActive(item.path)
+                      ? 'text-blue-600 border-b-2 border-blue-600 pb-1'
+                      : 'text-gray-700'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+
+            {/* Language Toggle & CTA */}
+            <div className="hidden md:flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleLanguage}
+                className="flex items-center space-x-2"
               >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Language Toggle & CTA */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleLanguage}
-              className="flex items-center space-x-2"
-            >
-              <Globe className="w-4 h-4" />
-              <span className="font-semibold">{language.toUpperCase()}</span>
-            </Button>
-            <a href="mailto:info@safechild.mom">
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                {t(language, 'contact')}
+                <Globe className="w-4 h-4" />
+                <span className="font-semibold">{language.toUpperCase()}</span>
               </Button>
-            </a>
-          </div>
+              <a href="mailto:info@safechild.mom">
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  {t(language, 'contact')}
+                </Button>
+              </a>
+            </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden p-2"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}

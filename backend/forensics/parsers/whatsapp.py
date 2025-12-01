@@ -128,7 +128,7 @@ class WhatsAppParser:
                     break  # Found messages, stop trying other queries
                     
             except sqlite3.Error as e:
-                # Try next query
+                print(f"[WhatsAppParser ERROR] Failed to execute query: {e}")
                 continue
         
         return messages
@@ -136,7 +136,13 @@ class WhatsAppParser:
     def _parse_deleted_messages(self, cursor, db_path: Path) -> List[Dict]:
         """
         Parse deleted messages (simplified version)
-        Real implementation would do deep SQLite forensics
+        
+        NOTE: Real deleted message recovery for SQLite involves advanced techniques such as:
+        - Analyzing the SQLite Write-Ahead Log (WAL) for deleted transactions.
+        - Examining freelist pages in the SQLite database file.
+        - Carving deleted records from unallocated space within the database file.
+        - Reconstructing fragmented records.
+        These require deep understanding of SQLite file structure and are beyond simple SQL queries.
         """
         deleted = []
         
@@ -208,7 +214,8 @@ class WhatsAppParser:
                 if contacts:
                     break
                     
-            except sqlite3.Error:
+            except sqlite3.Error as e:
+                print(f"[WhatsAppParser ERROR] Failed to execute contact query: {e}")
                 continue
         
         return contacts
@@ -240,7 +247,7 @@ class WhatsAppParser:
                     "type": row[2],
                     "size": row[3]
                 })
-        except:
-            pass
-        
+        except sqlite3.Error as e:
+            print(f"[WhatsAppParser ERROR] Failed to execute media query: {e}")
+
         return media

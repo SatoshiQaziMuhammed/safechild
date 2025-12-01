@@ -4,16 +4,16 @@ from datetime import datetime
 from pathlib import Path
 
 def generate_client_number():
-    """Generate unique client number in format SC2025XXX"""
-    year = datetime.now().year
-    unique_id = str(uuid.uuid4().int)[:3].zfill(3)
-    return f"SC{year}{unique_id}"
+    """Generate a more unique client number to prevent test collisions."""
+    timestamp_part = datetime.now().strftime('%f') # Microseconds
+    unique_part = str(uuid.uuid4().int)[:4]
+    return f"SC{datetime.now().year}{timestamp_part}{unique_part}"
 
 def generate_document_number():
-    """Generate unique document number in format DOC2025XXX"""
-    year = datetime.now().year
-    unique_id = str(uuid.uuid4().int)[:3].zfill(3)
-    return f"DOC{year}{unique_id}"
+    """Generate a more unique document number to prevent test collisions."""
+    timestamp_part = datetime.now().strftime('%f') # Microseconds
+    unique_part = str(uuid.uuid4().int)[:4]
+    return f"DOC{datetime.now().year}{timestamp_part}{unique_part}"
 
 def get_upload_directory(client_number: str):
     """Get or create upload directory for a client"""

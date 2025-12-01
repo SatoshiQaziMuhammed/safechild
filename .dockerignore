@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Pytest
+.pytest_cache/
+.coverage
+
+# Secrets
+wallet.txt
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# Other
+*.log

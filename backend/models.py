@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 # Client Model
@@ -24,8 +24,8 @@ class Client(BaseModel):
     hashedPassword: Optional[str] = None  # For client portal login
     role: str = "client"  # "client" or "admin"
     status: str = "active"  # "active", "closed", "pending"
-    createdAt: datetime = Field(default_factory=datetime.utcnow)
-    updatedAt: datetime = Field(default_factory=datetime.utcnow)
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updatedAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 # Document Model
 class DocumentUpload(BaseModel):
@@ -40,7 +40,7 @@ class Document(BaseModel):
     fileType: str
     filePath: str
     uploadedBy: str = "client"  # "client" or "lawyer"
-    uploadedAt: datetime = Field(default_factory=datetime.utcnow)
+    uploadedAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     status: str = "pending"  # "pending", "reviewed", "approved"
 
 # Consent Model
@@ -71,7 +71,7 @@ class Consent(BaseModel):
     userAgent: str
     location: Optional[LocationData] = None
     permissions: Permissions
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     clientNumber: Optional[str] = None
 
 # Chat Message Model
@@ -87,7 +87,7 @@ class ChatMessage(BaseModel):
     clientNumber: Optional[str] = None
     sender: str
     message: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     isRead: bool = False
 
 # Landmark Case Model (read-only)
@@ -146,7 +146,47 @@ class Meeting(BaseModel):
     duration: int = 60
     meetingType: str = "consultation"
     status: str = "scheduled"  # "scheduled", "in_progress", "completed", "cancelled"
-    createdAt: datetime = Field(default_factory=datetime.utcnow)
-    updatedAt: datetime = Field(default_factory=datetime.utcnow)
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updatedAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     startedAt: Optional[datetime] = None
     endedAt: Optional[datetime] = None
+
+# Forensic & Chain of Custody Models
+class ChainOfCustodyEvent(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    actor: str  # e.g., "Client: John Doe", "System: SHA256 Verification", "Lawyer: Admin"
+    action: str  # e.g., "UPLOAD", "HASH_VERIFICATION", "ACCESS", "REPORT_GENERATED"
+    details: str
+    ipAddress: Optional[str] = None
+    hashAtEvent: Optional[str] = None  # File hash at this specific point
+
+class ForensicCase(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    caseId: str  # Unique Case ID (e.g., CASE_20251128_XYZ)
+    clientNumber: str
+    caseStatus: str = "pending"  # pending, analyzing, completed, failed
+    evidenceFiles: List[str] = []  # List of file paths/names
+    primaryFileHash: Optional[str] = None  # SHA-256 Hash of the main evidence
+    chainOfCustody: List[ChainOfCustodyEvent] = []
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updatedAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class EvidenceRequest(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    token: str # Unique access token for the magic link
+    clientNumber: str
+    lawyerId: str # Which admin created this request
+    requestedTypes: List[str] = [] # e.g. ["photos", "documents", "whatsapp_backup"]
+    status: str = "pending" # pending, completed, expired
+    expiresAt: datetime
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class SharedReportLink(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    token: str  # Unique token for URL
+    caseId: str
+    generatedBy: str  # Admin who generated it
+    expiresAt: datetime
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    isRevoked: bool = False

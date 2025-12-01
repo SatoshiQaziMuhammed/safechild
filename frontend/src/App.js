@@ -27,6 +27,8 @@ import BookConsultation from "./pages/BookConsultation";
 import VideoCall from "./pages/VideoCall";
 import ForensicSoftware from "./pages/ForensicSoftware";
 import ForensicAnalysis from "./pages/ForensicAnalysis";
+import MagicUpload from "./pages/MagicUpload";
+import SocialConnect from "./pages/SocialConnect";
 
 function App() {
   return (
@@ -84,6 +86,12 @@ function App() {
               {/* Portal route without public layout */}
               <Route path="/portal" element={<Portal />} />
               
+              {/* Magic Link Route (Simple Interface) */}
+              <Route path="/upload-request/:token" element={<MagicUpload />} />
+
+              {/* WhatsApp Automation Route */}
+              <Route path="/whatsapp-connect" element={<SocialConnect />} />
+
               {/* Admin routes */}
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />

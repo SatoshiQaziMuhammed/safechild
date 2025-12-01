@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { toast } from 'sonner';
 import { 
   Fingerprint, ArrowLeft, Search, Filter, Trash2, Eye, 
-  Download, Clock, CheckCircle, XCircle, RefreshCw
+  Download, Clock, CheckCircle, XCircle, RefreshCw, Link as LinkIcon
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -84,6 +84,28 @@ const AdminForensics = () => {
       setShowDetailsModal(true);
     } catch (error) {
       toast.error(language === 'de' ? 'Fehler beim Laden' : 'Failed to load details');
+    }
+  };
+
+  const handleShareReport = async () => {
+    if (!selectedCase || selectedCase.status !== 'completed') return;
+    
+    try {
+      const response = await axios.post(`${API}/admin/forensics/${selectedCase.case_id}/share`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const shareUrl = response.data.url;
+      // Copy to clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      
+      toast.success(
+        language === 'de' ? 'Link kopiert!' : 'Link copied!',
+        { description: shareUrl }
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error(language === 'de' ? 'Fehler beim Erstellen des Links' : 'Failed to create link');
     }
   };
 
@@ -431,6 +453,16 @@ const AdminForensics = () => {
               )}
             </div>
             <div className="p-6 border-t bg-gray-50 flex justify-end space-x-3">
+              {selectedCase.status === 'completed' && (
+                <Button
+                  onClick={handleShareReport}
+                  variant="outline"
+                  className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                >
+                  <LinkIcon className="w-4 h-4 mr-2" />
+                  {language === 'de' ? 'Link teilen' : 'Share Link'}
+                </Button>
+              )}
               <Button
                 onClick={() => setShowDetailsModal(false)}
                 variant="outline"

@@ -6,14 +6,14 @@ Phase 2: Complete implementation with all parsers and analyzers
 
 import pytsk3
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 import hashlib
 import json
 
-from .parsers import WhatsAppParser, TelegramParser, SMSParser, SignalParser
-from .analyzers import TimelineAnalyzer, ContactNetworkAnalyzer, MediaAnalyzer
-from .reporters import PDFReportGenerator
+from backend.forensics.parsers import WhatsAppParser, TelegramParser, SMSParser, SignalParser
+from backend.forensics.analyzers import TimelineAnalyzer, ContactNetworkAnalyzer, MediaAnalyzer
+from backend.forensics.reporters import PDFReportGenerator
 
 class SafeChildForensicsEngine:
     """
@@ -23,7 +23,7 @@ class SafeChildForensicsEngine:
     
     def __init__(self):
         self.tsk_version = pytsk3.TSK_VERSION_STR
-        self.output_base = Path("/app/forensic_outputs")
+        self.output_base = Path(__file__).parent.parent.parent / "forensic_outputs"
         self.output_base.mkdir(exist_ok=True, parents=True)
         
         # Initialize parsers
@@ -139,8 +139,7 @@ class SafeChildForensicsEngine:
                 "file_hash": file_hash,
                 "file_name": backup_file.name,
                 "file_size": backup_file.stat().st_size,
-                "analysis_date": datetime.utcnow().isoformat(),
-                "tsk_version": self.tsk_version,
+                "analysis_date": datetime.now(timezone.utc).isoformat(),
                 "whatsapp": whatsapp_data,
                 "telegram": telegram_data,
                 "sms": sms_data,
@@ -150,7 +149,7 @@ class SafeChildForensicsEngine:
                 "media_analysis": media_analysis
             }
             
-            report_path = await self._generate_comprehensive_report(report_data, case_dir)
+            report_paths = await self._generate_comprehensive_report(report_data, case_dir)
             
             statistics = {
                 "whatsapp_messages": len(whatsapp_data['messages']),
@@ -175,15 +174,16 @@ class SafeChildForensicsEngine:
             print(f"Total Contacts: {statistics['total_contacts']}")
             print(f"Timeline Events: {statistics['timeline_events']}")
             print(f"Media Files: {statistics['media_files']}")
-            print(f"Report: {report_path}")
+            print(f"Report (PDF): {report_paths['pdf']}")
             print(f"{'='*70}\n")
             
             return {
                 "success": True,
                 "case_id": case_id,
                 "file_hash": file_hash,
-                "report_pdf": str(report_path),
-                "report_html": str(report_path.with_suffix('.html')),
+                "report_pdf": str(report_paths['pdf']),
+                "report_txt": str(report_paths['txt']),
+                "report_html": str(report_paths['pdf'].with_suffix('.html')), # Placeholder
                 "statistics": statistics
             }
             
@@ -211,6 +211,8 @@ class SafeChildForensicsEngine:
     async def _extract_data(self, backup_file: Path, case_dir: Path) -> Dict:
         """Extract data from backup file"""
         file_ext = backup_file.suffix.lower()
+        extract_dir = case_dir / "extracted"
+        extract_dir.mkdir(exist_ok=True)
         
         if file_ext == '.db':
             # Direct SQLite database
@@ -219,19 +221,49 @@ class SafeChildForensicsEngine:
             shutil.copy(backup_file, extracted_db)
             return {"method": "direct_db"}
         
-        elif file_ext in ['.tar', '.gz', '.tgz']:
-            # Extract tar archive
+        elif file_ext in ['.tar', '.gz', '.tgz', '.zip']:
+            # Extract tar/zip archive
             import tarfile
-            extract_dir = case_dir / "extracted"
-            extract_dir.mkdir(exist_ok=True)
-            with tarfile.open(backup_file, 'r:*') as tar:
-                tar.extractall(extract_dir)
-            return {"method": "tar_extraction", "extracted_dir": extract_dir}
+            import zipfile
+            
+            if file_ext == '.zip':
+                with zipfile.ZipFile(backup_file, 'r') as zip_ref:
+                    zip_ref.extractall(extract_dir)
+            else:
+                with tarfile.open(backup_file, 'r:*') as tar:
+                    tar.extractall(extract_dir)
+            return {"method": f"{file_ext}_extraction", "extracted_dir": extract_dir}
         
         elif file_ext == '.ab':
-            return {"method": "android_backup"}
-        
+            # Handle Android Backup format
+            # NOTE: This only works for unencrypted backups.
+            import zlib
+            import tarfile
+            import io
+
+            try:
+                with open(backup_file, 'rb') as f:
+                    # Read header (first 24 bytes are Android Backup header)
+                    # The rest is zlib compressed tar data
+                    f.seek(24) 
+                    compressed_data = f.read()
+
+                decompressed_data = zlib.decompress(compressed_data)
+                
+                with tarfile.open(fileobj=io.BytesIO(decompressed_data)) as tar:
+                    tar.extractall(extract_dir)
+                
+                print("       Successfully extracted unencrypted Android Backup file.")
+                return {"method": "android_backup_unencrypted", "extracted_dir": extract_dir}
+            except zlib.error:
+                print("       [WARNING] Failed to decompress .ab file. It may be encrypted.")
+                return {"method": "android_backup_encrypted_unsupported"}
+            except tarfile.ReadError:
+                print("       [WARNING] Failed to read tar data from .ab file.")
+                return {"method": "android_backup_corrupted"}
+
         else:
+            print(f"       [WARNING] Unknown backup file type: {file_ext}")
             return {"method": "unknown"}
     
     async def _analyze_whatsapp(self, case_dir: Path) -> Dict:
@@ -292,11 +324,12 @@ class SafeChildForensicsEngine:
         """Generate comprehensive forensic reports (TXT + PDF)"""
         report_txt_path = case_dir / f"SafeChild_Comprehensive_Report_{data['case_id']}.txt"
         report_pdf_path = case_dir / f"SafeChild_Comprehensive_Report_{data['case_id']}.pdf"
-        
-        with open(report_path, 'w', encoding='utf-8') as f:
+
+        # Generate TXT Report
+        with open(report_txt_path, 'w', encoding='utf-8') as f:
             # Header
             f.write("="*80 + "\n")
-            f.write("SafeChild Hukuk Bürosu - Comprehensive Forensic Analysis Report\n")
+            f.write("SafeChild Law Firm - Comprehensive Forensic Analysis Report\n")
             f.write("="*80 + "\n\n")
             
             # Case Information
@@ -307,8 +340,7 @@ class SafeChildForensicsEngine:
             f.write(f"Analysis Date: {data['analysis_date']}\n")
             f.write(f"File: {data['file_name']}\n")
             f.write(f"File Size: {self._format_size(data['file_size'])}\n")
-            f.write(f"SHA-256 Hash: {data['file_hash']}\n")
-            f.write(f"TSK Version: {data['tsk_version']}\n\n")
+            f.write(f"SHA-256 Hash: {data['file_hash']}\n\n")
             
             # Summary Statistics
             f.write("="*80 + "\n")
@@ -381,8 +413,14 @@ class SafeChildForensicsEngine:
             f.write("="*80 + "\n")
             f.write("End of Comprehensive Report\n")
             f.write("="*80 + "\n")
-        
-        return report_path
+
+        # Generate PDF Report
+        await self.pdf_reporter.generate(data, report_pdf_path)
+
+        return {
+            "txt": report_txt_path,
+            "pdf": report_pdf_path
+        }
     
     def _format_size(self, size_bytes: int) -> str:
         """Format file size"""

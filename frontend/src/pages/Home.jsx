@@ -43,7 +43,7 @@ const Home = () => {
         </div>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div>
               <div className="inline-flex items-center px-4 py-2 bg-blue-100 rounded-full mb-6">
@@ -98,7 +98,7 @@ const Home = () => {
       {/* Stats Section */}
       <section className="py-16 bg-white border-y">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="text-4xl md:text-5xl font-bold text-blue-600 mb-2">
                 {mockStats.cases}
@@ -152,7 +152,7 @@ const Home = () => {
           </div>
 
           <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
               {[
                 'Albania', 'Andorra', 'Argentina', 'Armenia', 'Australia', 'Austria', 
                 'Azerbaijan', 'Bahamas', 'Belarus', 'Belgium', 'Belize', 'Bolivia',
@@ -208,7 +208,7 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {services.map((service, index) => {
               const Icon = service.icon;
               return (

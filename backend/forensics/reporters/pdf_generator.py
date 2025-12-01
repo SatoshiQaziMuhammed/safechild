@@ -13,9 +13,12 @@ from reportlab.platypus import (
     PageBreak, Image, KeepTogether
 )
 from reportlab.pdfgen import canvas
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict
+
+# Define the path to the logo (assuming it's in the backend directory)
+LOGO_PATH = Path(__file__).parent.parent.parent / "safechild_logo.png"
 
 class PDFReportGenerator:
     """Generate professional PDF forensic reports"""
@@ -32,7 +35,7 @@ class PDFReportGenerator:
             parent=self.styles['Heading1'],
             fontSize=24,
             textColor=colors.HexColor('#1e40af'),
-            spaceAfter=30,
+            spaceAfter=15, # Changed from 30 to 15
             alignment=TA_CENTER,
             fontName='Helvetica-Bold'
         ))
@@ -79,6 +82,16 @@ class PDFReportGenerator:
             fontSize=8,
             textColor=colors.HexColor('#6b7280'),
             spaceAfter=4
+        ))
+        
+        # COC Event style
+        self.styles.add(ParagraphStyle(
+            name='CoCEvent',
+            parent=self.styles['Normal'],
+            fontSize=9,
+            textColor=colors.HexColor('#1f2937'),
+            spaceAfter=3,
+            leftIndent=0.5*cm
         ))
     
     async def generate(self, data: Dict, output_path: Path):
@@ -128,7 +141,17 @@ class PDFReportGenerator:
         if data.get('sms', {}).get('messages') or data.get('sms', {}).get('calls'):
             story.extend(self._build_sms_section(data))
             story.append(Spacer(1, 0.5*cm))
-        
+
+        # Signal Analysis
+        if data.get('signal', {}).get('messages'):
+            story.extend(self._build_signal_section(data))
+            story.append(Spacer(1, 0.5*cm))
+
+        # Media Analysis Summary
+        if data.get('media_analysis', {}).get('total_files', 0) > 0:
+            story.extend(self._build_media_summary_section(data))
+            story.append(Spacer(1, 0.5*cm))
+
         # Timeline
         story.append(PageBreak())
         story.extend(self._build_timeline_section(data))
@@ -136,19 +159,29 @@ class PDFReportGenerator:
         # Contact Network
         story.append(PageBreak())
         story.extend(self._build_contacts_section(data))
+
+        # Chain of Custody
+        story.append(PageBreak())
+        story.extend(self._build_chain_of_custody_section(data))
         
-        # Footer
+        # Footer (Certification)
         story.append(PageBreak())
         story.extend(self._build_footer(data))
         
         # Build PDF
-        doc.build(story, onFirstPage=self._add_page_number, onLaterPages=self._add_page_number)
+        doc.build(story, onFirstPage=self._page_template, onLaterPages=self._page_template)
         
         return output_path
     
     def _build_header(self, data: Dict):
-        """Build report header"""
+        """Build report header with logo"""
         elements = []
+
+        # Logo
+        if LOGO_PATH.exists():
+            logo = Image(str(LOGO_PATH), width=4*cm, height=4*cm)
+            elements.append(logo)
+            elements.append(Spacer(1, 0.5*cm))
         
         # Title
         elements.append(Paragraph(
@@ -222,7 +255,6 @@ class PDFReportGenerator:
             ['File Name:', data['file_name']],
             ['File Size:', self._format_size(data['file_size'])],
             ['SHA-256 Hash:', data['file_hash'][:64]],
-            ['TSK Version:', data['tsk_version']],
         ]
         
         info_table = Table(info_data, colWidths=[4*cm, 11*cm])
@@ -363,16 +395,20 @@ class PDFReportGenerator:
         
         elements.append(Paragraph("Communication Timeline", self.styles['SectionHeader']))
         
-        timeline = data.get('timeline', [])[:30]  # First 30 events
+        timeline = data.get('timeline', [])[:50]  # Increased to 50 events for more detail
         
         for event in timeline:
-            timestamp = datetime.fromtimestamp(event.get('timestamp', 0)).strftime('%Y-%m-%d %H:%M:%S') if event.get('timestamp') else 'N/A'
+            timestamp = datetime.fromtimestamp(event.get('timestamp', 0)).strftime('%Y-%m-%d %H:%M:%S UTC') if event.get('timestamp') else 'N/A'
             
-            event_text = f"[{timestamp}] {event.get('source', 'Unknown')} - {event.get('type', 'message')}"
+            event_text = f"[{timestamp}] <b>{event.get('source', 'Unknown')}</b> - {event.get('type', 'message')}"
             if event.get('deleted'):
-                event_text += " ⚠️ DELETED"
+                event_text += " <font color=\'red\'>⚠️ DELETED</font>"
+            content_preview = event.get('content_preview', '')
+            if content_preview:
+                event_text += f"<br/><i>Content:</i> {content_preview}"
             
             elements.append(Paragraph(event_text, self.styles['SmallText']))
+            elements.append(Spacer(1, 0.2*cm))
         
         return elements
     
@@ -387,9 +423,35 @@ class PDFReportGenerator:
             f"Total Contacts: {network.get('total_contacts', 0)}",
             self.styles['InfoText']
         ))
+
+        if network.get('top_contacts'):
+            elements.append(Spacer(1, 0.3*cm))
+            elements.append(Paragraph("Top Interacted Contacts:", self.styles['InfoText']))
+            contact_table_data = [["Contact ID", "Name", "Platforms", "Messages", "Calls", "Total Interactions"]]
+            for contact_id in network['top_contacts'][:10]: # Top 10
+                contact = network['contacts'].get(contact_id, {})
+                contact_table_data.append([
+                    contact_id,
+                    contact.get('name', 'Unknown'),
+                    ', '.join(contact.get('platforms', [])),
+                    str(contact.get('message_count', 0)),
+                    str(contact.get('call_count', 0)),
+                    str(contact.get('total_interactions', 0))
+                ])
+            
+            contact_table = Table(contact_table_data, colWidths=[3*cm, 4*cm, 3*cm, 2*cm, 2*cm, 2*cm])
+            contact_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e0e7ff')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(contact_table)
         
         return elements
-    
+
     def _build_footer(self, data: Dict):
         """Build report footer"""
         elements = []
@@ -397,29 +459,19 @@ class PDFReportGenerator:
         elements.append(Paragraph("Report Certification", self.styles['SectionHeader']))
         
         cert_text = f"""
-        This forensic analysis report was generated using SafeChild Forensics Engine
-        (The Sleuth Kit {data['tsk_version']}) on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}.
+        This report was generated using the SafeChild Forensic Data Parser
+        on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}.
         <br/><br/>
-        The analysis was conducted in a forensically sound manner, maintaining the integrity
-        of the original evidence. All extracted data was verified using cryptographic hashing
-        (SHA-256: {data['file_hash'][:32]}...).
+        The analysis was conducted by parsing data from the provided backup file. The integrity
+        of the original evidence file is guaranteed by cryptographic hashing.
+        (SHA-256: {data['file_hash']}).
         <br/><br/>
-        This report is admissible in court proceedings and complies with international
-        digital forensics standards.
+        This report reflects the data found within the provided backup file.
         """
         
         elements.append(Paragraph(cert_text, self.styles['InfoText']))
         
         return elements
-    
-    def _add_page_number(self, canvas, doc):
-        """Add page number to each page"""
-        page_num = canvas.getPageNumber()
-        text = f"Page {page_num}"
-        canvas.saveState()
-        canvas.setFont('Helvetica', 9)
-        canvas.drawRightString(18*cm, 1*cm, text)
-        canvas.restoreState()
     
     def _format_size(self, size_bytes: int) -> str:
         """Format file size"""
@@ -431,3 +483,103 @@ class PDFReportGenerator:
             return f"{size_bytes / (1024 * 1024):.2f} MB"
         else:
             return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
+
+    def _page_template(self, canvas_obj, doc):
+        """Adds page number and current date/time to each page"""
+        canvas_obj.saveState()
+        canvas_obj.setFont('Helvetica', 9)
+
+        # Page Number
+        page_num_text = f"Page {canvas_obj.getPageNumber()}"
+        canvas_obj.drawRightString(doc.rightMargin + doc.width, 1.5 * cm, page_num_text)
+
+        # Current Date/Time
+        current_datetime_text = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+        canvas_obj.drawString(doc.leftMargin, 1.5 * cm, current_datetime_text)
+
+        canvas_obj.restoreState()
+
+    def _build_signal_section(self, data: Dict):
+        """Build Signal analysis section"""
+        elements = []
+        
+        elements.append(Paragraph("Signal Analysis", self.styles['SectionHeader']))
+        elements.append(Paragraph(
+            f"Total Messages: {len(data.get('signal', {}).get('messages', []))}",
+            self.styles['InfoText']
+        ))
+        
+        return elements
+    
+    def _build_media_summary_section(self, data: Dict):
+        """Build media analysis summary section"""
+        elements = []
+        elements.append(Paragraph("Media File Analysis Summary", self.styles['SectionHeader']))
+        
+        media_analysis = data.get('media_analysis', {})
+        elements.append(Paragraph(
+            f"Total Files: {media_analysis.get('total_files', 0)}",
+            self.styles['InfoText']
+        ))
+        elements.append(Paragraph(
+            f"Total Size: {media_analysis.get('total_size_formatted', 'N/A')}",
+            self.styles['InfoText']
+        ))
+
+        by_type_data = [["Type", "Count"]]
+        for m_type, count in media_analysis.get('by_type', {}).items():
+            by_type_data.append([m_type, str(count)])
+
+        if len(by_type_data) > 1:
+            type_table = Table(by_type_data, colWidths=[7.5*cm, 7.5*cm])
+            type_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e0e7ff')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(Spacer(1, 0.5*cm))
+            elements.append(type_table)
+
+        return elements
+
+    def _build_chain_of_custody_section(self, data: Dict):
+        """Build Chain of Custody section"""
+        elements = []
+        elements.append(Paragraph("Chain of Custody Log", self.styles['SectionHeader']))
+        elements.append(Paragraph(
+            "A chronological record of actions taken on the evidence file to maintain its integrity.",
+            self.styles['InfoText']
+        ))
+        elements.append(Spacer(1, 0.3*cm))
+
+        coc_events = data.get('chain_of_custody', [])
+        if not coc_events:
+            elements.append(Paragraph("No Chain of Custody events recorded.", self.styles['InfoText']))
+            return elements
+
+        # Sort by timestamp ascending
+        sorted_coc = sorted(coc_events, key=lambda x: x.get('timestamp', datetime.min))
+
+        for event in sorted_coc:
+            timestamp = event.get('timestamp', datetime.min).strftime('%Y-%m-%d %H:%M:%S UTC')
+            actor = event.get('actor', 'N/A')
+            action = event.get('action', 'N/A')
+            details = event.get('details', 'N/A')
+            event_hash = event.get('hashAtEvent', 'N/A')
+            ip_address = event.get('ipAddress', 'N/A')
+
+            event_text = f"""
+            <b>Time:</b> {timestamp}<br/>
+            <b>Actor:</b> {actor}<br/>
+            <b>Action:</b> {action}<br/>
+            <b>Details:</b> {details}<br/>
+            <b>IP Address:</b> {ip_address}<br/>
+            <b>Hash (at event):</b> {event_hash[:64]}
+            """
+            elements.append(Paragraph(event_text, self.styles['CoCEvent']))
+            elements.append(Spacer(1, 0.2*cm))
+        
+        return elements

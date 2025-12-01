@@ -131,7 +131,7 @@ const ConsentModal = ({ open, onClose, onAccept }) => {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Select All Button */}
+        {/* Single Accept All Checkbox */}
         <div className="py-4 border-b">
           <div
             onClick={handleSelectAll}
@@ -148,42 +148,13 @@ const ConsentModal = ({ open, onClose, onAccept }) => {
               className="flex-1 cursor-pointer font-semibold text-lg text-blue-900"
             >
               {language === 'de' 
-                ? '✓ Alle Berechtigungen auswählen' 
-                : '✓ Select All Permissions'}
+                ? '✓ Alle Cookies akzeptieren' 
+                : '✓ Accept All Cookies'}
             </Label>
           </div>
         </div>
 
-        <div className="space-y-4 py-4">
-          {consentItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={item.key}
-                className="flex items-start space-x-3 p-4 border-2 rounded-lg hover:border-blue-500 transition-colors"
-              >
-                <Checkbox
-                  id={item.key}
-                  checked={consents[item.key]}
-                  onCheckedChange={(checked) =>
-                    setConsents({ ...consents, [item.key]: checked })
-                  }
-                  className="mt-1"
-                />
-                <div className="flex-1">
-                  <Label
-                    htmlFor={item.key}
-                    className="flex items-center space-x-2 cursor-pointer"
-                  >
-                    <Icon className="w-5 h-5 text-blue-600" />
-                    <span className="text-base font-medium">{item.label}</span>
-                  </Label>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
+        {/* Explanation for detailed consent (Optional, if still desired) */}
         <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-800">
             {language === 'de'
@@ -198,7 +169,7 @@ const ConsentModal = ({ open, onClose, onAccept }) => {
           </Button>
           <Button
             onClick={handleAccept}
-            disabled={!allConsented}
+            disabled={!allConsented} /* Disabled if 'Accept All Cookies' is not checked */
             className="bg-blue-600 hover:bg-blue-700"
           >
             {t(language, 'acceptConsent')}
