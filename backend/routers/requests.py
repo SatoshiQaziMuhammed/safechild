@@ -3,11 +3,14 @@ Evidence Request (Magic Link) Router for SafeChild
 Handles creation and processing of secure evidence upload links
 """
 from fastapi import APIRouter, HTTPException, Depends, Body, UploadFile, File, BackgroundTasks
+from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import uuid
 from pathlib import Path
 import os
+import secrets
 
 from .. import get_db
 from ..auth import get_current_admin
