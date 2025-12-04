@@ -11,6 +11,36 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// URL'leri tıklanabilir linklere çevir
+const linkifyText = (text, isClientMessage = false) => {
+  if (!text) return text;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      // Client mesajında (mavi arka plan): açık mavi link
+      // Agent mesajında (gri arka plan): koyu mavi link
+      const linkClass = isClientMessage
+        ? "underline text-blue-200 hover:text-white break-all"
+        : "underline text-blue-600 hover:text-blue-800 break-all";
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClass}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 // Browser fingerprint toplama fonksiyonu
 const collectBrowserFingerprint = () => {
   const nav = navigator;
@@ -551,7 +581,7 @@ const LiveChat = () => {
                             {message.agentName}
                           </p>
                         )}
-                        <p className={isMobile ? 'text-sm' : 'text-sm'}>{message.text}</p>
+                        <p className={isMobile ? 'text-sm' : 'text-sm'}>{linkifyText(message.text, message.sender === 'client')}</p>
                         <p className={`opacity-60 mt-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>

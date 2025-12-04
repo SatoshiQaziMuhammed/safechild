@@ -6,7 +6,10 @@ from motor.motor_asyncio import AsyncIOMotorClient
 MONGO_URL = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 DB_NAME = "safechild_db"
 
-client = AsyncIOMotorClient(MONGO_URL)
-db = client[DB_NAME]
+client = None
+db = None
 
-print(f"🔌 Veritabanı bağlantısı başlatıldı: {DB_NAME}")
+def get_db():
+    return db
+
+print(f"🔌 Veritabanı yapılandırması yüklendi: {DB_NAME} (Bağlantı başlatılmadı)")

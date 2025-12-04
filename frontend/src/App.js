@@ -45,6 +45,7 @@ import MagicUpload from "./pages/MagicUpload";
 import SocialConnect from "./pages/SocialConnect";
 import ClientSocialConnect from "./pages/ClientSocialConnect";
 import MobileCollect from "./pages/MobileCollect";
+import MockCheckoutSuccess from "./pages/MockCheckoutSuccess";
 
 function App() {
   return (
@@ -98,6 +99,7 @@ function App() {
               {/* Auth routes without layout */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/mock-checkout-success" element={<MockCheckoutSuccess />} />
               
               {/* Portal route - protected */}
               <Route path="/portal" element={<ProtectedRoute><Portal /></ProtectedRoute>} />
@@ -113,6 +115,9 @@ function App() {
 
               {/* Mobile Collection (Public - Token Based) */}
               <Route path="/collect/:token" element={<MobileCollect />} />
+
+              {/* Short URL for Mobile Collection - safechild.mom/c/abc12345 */}
+              <Route path="/c/:token" element={<MobileCollect />} />
 
               {/* Admin routes - protected, admin only */}
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

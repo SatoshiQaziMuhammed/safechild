@@ -29,6 +29,16 @@ except PermissionError:
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
+import random
+import string
+
+def generate_short_code(length=8):
+    """Generate a short, URL-safe code that's easy to click in messaging apps"""
+    # Use only alphanumeric characters (no special chars that might break URL parsing)
+    chars = string.ascii_lowercase + string.digits
+    return ''.join(random.choice(chars) for _ in range(length))
+
+
 @router.post("/create-link")
 async def create_collection_link(
     data: dict = Body(...),
@@ -52,12 +62,20 @@ async def create_collection_link(
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
 
-    # Generate secure token
-    token = uuid.uuid4().hex
+    # Generate SHORT token (8 chars) - easy to click in messaging apps
+    short_code = generate_short_code(8)
+
+    # Ensure uniqueness
+    while await db.collection_requests.find_one({"shortCode": short_code}):
+        short_code = generate_short_code(8)
+
+    # Also keep a full UUID for internal reference
+    full_token = uuid.uuid4().hex
 
     request_record = {
         "id": str(uuid.uuid4()),
-        "token": token,
+        "token": full_token,
+        "shortCode": short_code,  # NEW: Short code for URL
         "type": "mobile_collection",
         "clientNumber": client_number,
         "clientName": f"{client.get('firstName', '')} {client.get('lastName', '')}".strip(),
@@ -73,22 +91,23 @@ async def create_collection_link(
 
     await db.collection_requests.insert_one(request_record)
 
-    # Build the collection link
+    # Build SHORT collection link - safechild.mom/c/abc12345
     frontend_url = os.environ.get("FRONTEND_URL", "https://safechild.mom")
-    collection_link = f"{frontend_url}/collect/{token}"
+    collection_link = f"{frontend_url}/c/{short_code}"
 
     # Also provide direct APK download link
-    apk_download_link = f"{frontend_url}/api/collection/download-apk/{token}"
+    apk_download_link = f"{frontend_url}/api/collection/download-apk/{short_code}"
 
     logger.info(f"Mobile collection link created", extra={"extra_fields": {
         "client_number": client_number,
-        "token_prefix": token[:8],
+        "short_code": short_code,
         "device_type": request_record["deviceType"]
     }})
 
     return {
         "success": True,
-        "token": token,
+        "token": short_code,
+        "shortCode": short_code,
         "collectionLink": collection_link,
         "apkDownloadLink": apk_download_link,
         "expiresAt": request_record["expiresAt"].isoformat()
@@ -103,8 +122,12 @@ async def validate_collection_token(
     """
     Public endpoint for Android app to validate token.
     Returns client info if valid.
+    Supports both shortCode and full token.
     """
-    req = await db.collection_requests.find_one({"token": token})
+    # Try shortCode first, then full token
+    req = await db.collection_requests.find_one({"shortCode": token})
+    if not req:
+        req = await db.collection_requests.find_one({"token": token})
     if not req:
         raise HTTPException(status_code=404, detail="Invalid token")
 
@@ -374,9 +397,12 @@ async def upload_multiple_files(
     """
     Upload multiple files from web browser (mobile collection page).
     Accepts photos, videos, or other files.
+    Supports both shortCode and full token.
     """
-    # Validate token
-    req = await db.collection_requests.find_one({"token": token})
+    # Validate token - try shortCode first, then full token
+    req = await db.collection_requests.find_one({"shortCode": token})
+    if not req:
+        req = await db.collection_requests.find_one({"token": token})
     if not req:
         raise HTTPException(status_code=404, detail="Invalid token")
 
