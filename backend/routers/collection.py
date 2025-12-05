@@ -3,6 +3,7 @@ Android Agent Collection Router for SafeChild
 Handles mobile forensic data collection from Android devices
 """
 from fastapi import APIRouter, HTTPException, Depends, Body, UploadFile, File
+from fastapi.responses import FileResponse
 from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import uuid
@@ -37,6 +38,35 @@ def generate_short_code(length=8):
     # Use only alphanumeric characters (no special chars that might break URL parsing)
     chars = string.ascii_lowercase + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
+
+
+# APK download paths
+APK_PATH = Path("/app/backend/static/safechild-agent.apk")
+APK_FALLBACK_PATH = Path(__file__).parent.parent / "static" / "safechild-agent.apk"
+
+
+@router.get("/download-app")
+async def download_android_app():
+    """
+    Download the SafeChild Android Agent APK.
+    This endpoint is public - anyone with the link can download.
+    """
+    # Try primary path first, then fallback
+    if APK_PATH.exists():
+        apk_file = APK_PATH
+    elif APK_FALLBACK_PATH.exists():
+        apk_file = APK_FALLBACK_PATH
+    else:
+        raise HTTPException(
+            status_code=404,
+            detail="APK file not found. Please contact support."
+        )
+
+    return FileResponse(
+        path=str(apk_file),
+        filename="SafeChild-Agent.apk",
+        media_type="application/vnd.android.package-archive"
+    )
 
 
 @router.post("/create-link")
