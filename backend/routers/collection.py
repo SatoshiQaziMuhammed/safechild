@@ -519,3 +519,243 @@ async def upload_multiple_files(
     except Exception as e:
         logger.error(f"Web collection upload failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# Chunked Upload Support (for large files from Android Agent)
+# =============================================================================
+
+CHUNK_DIR = Path("/tmp/chunks")
+CHUNK_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@router.post("/upload-chunk")
+async def upload_chunk(
+    token: str = Form(...),
+    upload_id: str = Form(...),
+    chunk_index: int = Form(...),
+    total_chunks: int = Form(...),
+    file_name: str = Form(...),
+    chunk: UploadFile = File(...),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    """
+    Upload a single chunk of a large file.
+    Used by Android Agent for files > 5MB.
+    """
+    # Validate token
+    req = await db.collection_requests.find_one({"shortCode": token})
+    if not req:
+        req = await db.collection_requests.find_one({"token": token})
+    if not req:
+        raise HTTPException(status_code=404, detail="Invalid token")
+
+    if req["expiresAt"] < datetime.utcnow():
+        raise HTTPException(status_code=410, detail="Token expired")
+
+    try:
+        # Create chunk directory for this upload
+        upload_chunk_dir = CHUNK_DIR / upload_id
+        upload_chunk_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save chunk
+        chunk_path = upload_chunk_dir / f"chunk_{chunk_index:05d}"
+        content = await chunk.read()
+        with open(chunk_path, "wb") as f:
+            f.write(content)
+
+        # Save metadata
+        meta_path = upload_chunk_dir / "meta.json"
+        meta = {
+            "token": token,
+            "upload_id": upload_id,
+            "file_name": file_name,
+            "total_chunks": total_chunks,
+            "client_number": req["clientNumber"],
+            "started_at": datetime.utcnow().isoformat()
+        }
+        with open(meta_path, "w") as f:
+            json.dump(meta, f)
+
+        logger.info(f"Chunk uploaded: {chunk_index + 1}/{total_chunks}", extra={"extra_fields": {
+            "upload_id": upload_id,
+            "chunk_index": chunk_index,
+            "total_chunks": total_chunks
+        }})
+
+        return {
+            "success": True,
+            "chunk_index": chunk_index,
+            "total_chunks": total_chunks
+        }
+
+    except Exception as e:
+        logger.error(f"Chunk upload failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/upload-complete")
+async def complete_chunked_upload(
+    data: dict = Body(...),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    """
+    Finalize chunked upload - merge chunks and process.
+    """
+    token = data.get("token")
+    upload_id = data.get("upload_id")
+    file_name = data.get("file_name", "collection.zip")
+
+    if not token or not upload_id:
+        raise HTTPException(status_code=400, detail="token and upload_id required")
+
+    # Validate token
+    req = await db.collection_requests.find_one({"shortCode": token})
+    if not req:
+        req = await db.collection_requests.find_one({"token": token})
+    if not req:
+        raise HTTPException(status_code=404, detail="Invalid token")
+
+    upload_chunk_dir = CHUNK_DIR / upload_id
+    if not upload_chunk_dir.exists():
+        raise HTTPException(status_code=404, detail="Upload not found")
+
+    try:
+        # Read metadata
+        meta_path = upload_chunk_dir / "meta.json"
+        with open(meta_path, "r") as f:
+            meta = json.load(f)
+
+        client_number = meta["client_number"]
+        total_chunks = meta["total_chunks"]
+
+        # Verify all chunks exist
+        chunk_files = sorted(upload_chunk_dir.glob("chunk_*"))
+        if len(chunk_files) != total_chunks:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing chunks: got {len(chunk_files)}, expected {total_chunks}"
+            )
+
+        # Create final directory
+        collection_dir = UPLOAD_DIR / f"{client_number}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+        collection_dir.mkdir(parents=True, exist_ok=True)
+
+        # Merge chunks
+        final_path = collection_dir / file_name
+        with open(final_path, "wb") as outfile:
+            for chunk_file in chunk_files:
+                with open(chunk_file, "rb") as infile:
+                    outfile.write(infile.read())
+
+        # Encrypt the merged file
+        with open(final_path, "rb") as f:
+            content = f.read()
+
+        encryption_result = security_service.encrypt_file(content)
+        encrypted_path = collection_dir / f"{file_name}.enc"
+        with open(encrypted_path, "wb") as f:
+            f.write(encryption_result['encrypted_data'])
+
+        enc_meta = {k: v for k, v in encryption_result.items() if k != 'encrypted_data'}
+
+        # Process ZIP if applicable
+        stats = {"sms": 0, "contacts": 0, "call_log": 0, "media": 0, "whatsapp": 0}
+        metadata = {}
+        extracted_dir = None
+
+        if file_name.endswith(".zip"):
+            try:
+                extracted_dir = collection_dir / "extracted"
+                with zipfile.ZipFile(final_path, 'r') as zf:
+                    zf.extractall(extracted_dir)
+
+                # Parse metadata
+                metadata_file = extracted_dir / "metadata.json"
+                if metadata_file.exists():
+                    with open(metadata_file, 'r') as f:
+                        metadata = json.load(f)
+
+                # Count items
+                for filename, key in [
+                    ("sms.json", "sms"),
+                    ("contacts.json", "contacts"),
+                    ("call_log.json", "call_log"),
+                    ("media.json", "media"),
+                    ("whatsapp_msgstore.db", "whatsapp")
+                ]:
+                    filepath = extracted_dir / filename
+                    if filepath.exists():
+                        if filename.endswith(".json"):
+                            with open(filepath, 'r') as f:
+                                data = json.load(f)
+                                stats[key] = len(data) if isinstance(data, list) else 1
+                        else:
+                            stats[key] = 1
+
+                # Delete unencrypted ZIP
+                final_path.unlink()
+
+            except Exception as e:
+                logger.warning(f"ZIP processing failed: {e}")
+
+        # Create forensic record
+        case_id = f"AGENT_{client_number}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+
+        analysis_record = {
+            "case_id": case_id,
+            "client_number": client_number,
+            "source": "android_agent",
+            "status": "completed",
+            "collection_token": token,
+            "encrypted_file": str(encrypted_path),
+            "extracted_dir": str(extracted_dir) if extracted_dir else None,
+            "encryption_metadata": enc_meta,
+            "device_info": metadata.get("device", {}),
+            "statistics": stats,
+            "chain_of_custody": [{
+                "id": str(uuid.uuid4()),
+                "timestamp": datetime.utcnow(),
+                "actor": f"Android Agent: {metadata.get('device', {}).get('model', 'Unknown')}",
+                "action": "MOBILE_DATA_COLLECTION",
+                "details": f"Collected via SafeChild Android Agent (chunked upload). Upload ID: {upload_id}"
+            }],
+            "created_at": datetime.utcnow()
+        }
+
+        await db.forensic_analyses.insert_one(analysis_record)
+
+        # Update collection request
+        await db.collection_requests.update_one(
+            {"$or": [{"shortCode": token}, {"token": token}]},
+            {
+                "$set": {
+                    "status": "completed",
+                    "uploadedAt": datetime.utcnow(),
+                    "caseId": case_id,
+                    "statistics": stats
+                }
+            }
+        )
+
+        # Cleanup chunk directory
+        shutil.rmtree(upload_chunk_dir, ignore_errors=True)
+
+        logger.info(f"Chunked upload completed", extra={"extra_fields": {
+            "case_id": case_id,
+            "client_number": client_number,
+            "stats": stats
+        }})
+
+        return {
+            "success": True,
+            "caseId": case_id,
+            "statistics": stats,
+            "message": "Data collected successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"Chunked upload completion failed: {e}")
+        # Cleanup on error
+        shutil.rmtree(upload_chunk_dir, ignore_errors=True)
+        raise HTTPException(status_code=500, detail=str(e))
