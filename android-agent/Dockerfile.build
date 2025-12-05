@@ -1,0 +1,36 @@
+# Android APK Build Container
+FROM eclipse-temurin:17-jdk
+
+# Install required tools
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Android SDK environment
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+
+# Download and install Android command-line tools
+RUN mkdir -p $ANDROID_HOME/cmdline-tools && \
+    cd $ANDROID_HOME/cmdline-tools && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip && \
+    unzip -q tools.zip && \
+    rm tools.zip && \
+    mv cmdline-tools latest
+
+# Accept licenses and install SDK components
+RUN yes | sdkmanager --licenses && \
+    sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+WORKDIR /app
+
+# Copy project files
+COPY . .
+
+# Make gradlew executable
+RUN chmod +x ./gradlew
+
+# Build APK
+CMD ["./gradlew", "assembleRelease", "--no-daemon"]

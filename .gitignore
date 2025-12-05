@@ -85,3 +85,10 @@ wallet.txt
 tum_proje_kodlari.txt
 hazirla.py
 mimari.txt
+
+# Android Agent build files
+android-agent/.gradle/
+android-agent/app/build/
+android-agent/build/
+*.apk
+!backend/static/*.apk

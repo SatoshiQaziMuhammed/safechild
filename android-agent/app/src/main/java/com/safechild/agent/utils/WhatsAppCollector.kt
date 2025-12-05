@@ -79,7 +79,7 @@ class WhatsAppCollector(private val context: Context) {
             } catch (e: Exception) {
                 Log.e(TAG, "Error parsing WhatsApp database", e)
                 result["status"] = "parse_error"
-                result["error"] = e.message
+                result["error"] = e.message ?: "Unknown error"
             }
         } else {
             // Try to collect exported chat files
@@ -195,9 +195,10 @@ class WhatsAppCollector(private val context: Context) {
             cursor?.use {
                 while (it.moveToNext()) {
                     val jid = it.getString(it.getColumnIndexOrThrow("jid"))
-                    val chat = mapOf(
+                    val subject = it.getString(it.getColumnIndexOrThrow("subject"))
+                    val chat = mapOf<String, Any?>(
                         "jid" to jid,
-                        "name" to (it.getString(it.getColumnIndexOrThrow("subject")) ?: extractNameFromJid(jid)),
+                        "name" to (subject ?: extractNameFromJid(jid)),
                         "creation_time" to it.getLong(it.getColumnIndexOrThrow("creation")),
                         "last_activity" to it.getLong(it.getColumnIndexOrThrow("sort_timestamp")),
                         "is_group" to jid.contains("@g.us")
@@ -293,7 +294,7 @@ class WhatsAppCollector(private val context: Context) {
         }
     }
     
-    private fun extractNameFromJid(jid: String): String {
-        return jid.substringBefore("@").replace("-", " ")
+    private fun extractNameFromJid(jid: String?): String {
+        return jid?.substringBefore("@")?.replace("-", " ") ?: ""
     }
 }
